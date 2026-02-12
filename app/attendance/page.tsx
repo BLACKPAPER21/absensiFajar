@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Webcam from "react-webcam";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, RefreshCw, Camera, Loader2, CheckCircle, XCircle, Users } from "lucide-react";
+import { MapPin, RefreshCw, Camera, Loader2, CheckCircle, XCircle, Users, AlertTriangle, Info, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as faceapi from 'face-api.js';
 
@@ -44,6 +44,22 @@ export default function AttendancePage() {
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'verifying' | 'success' | 'failed'>('idle');
   const [identifiedUser, setIdentifiedUser] = useState<any>(null); // Who did we find?
+
+  // Modal State
+  const [modal, setModal] = useState<{
+    open: boolean;
+    type: 'success' | 'error' | 'warning' | 'info';
+    title: string;
+    message: string;
+  }>({ open: false, type: 'info', title: '', message: '' });
+
+  const showModal = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => {
+    setModal({ open: true, type, title, message });
+  };
+
+  const closeModal = () => {
+    setModal(prev => ({ ...prev, open: false }));
+  };
 
   // 1. Initialize System
   useEffect(() => {
@@ -131,7 +147,7 @@ export default function AttendancePage() {
     if (!distance || distance > MAX_DISTANCE_METERS) return;
     if (!capturedImage) return;
     if (employees.length === 0) {
-      alert("System has no registered faces to match against. Please ask Admin to register employees.");
+      showModal('warning', 'No Employees Registered', 'System has no registered faces to match against. Please ask Admin to register employees.');
       return;
     }
 
@@ -147,7 +163,7 @@ export default function AttendancePage() {
 
       if (!detection) {
         setVerificationStatus('failed');
-        alert("No face detected! Please ensure your face is clearly visible.");
+        showModal('error', 'No Face Detected', 'Please ensure your face is clearly visible and try again.');
         setCheckingIn(false);
         return;
       }
@@ -166,7 +182,7 @@ export default function AttendancePage() {
 
       if (bestMatch.label === 'unknown') {
         setVerificationStatus('failed');
-        alert(`Wajah Tidak Terdaftar!\n(Face Not Registered)\n\nScore: ${bestMatch.distance.toFixed(2)}`);
+        showModal('error', 'Face Not Registered', `Wajah tidak terdaftar dalam sistem.\nConfidence Score: ${bestMatch.distance.toFixed(2)}`);
         setCheckingIn(false);
         return;
       }
@@ -201,22 +217,23 @@ export default function AttendancePage() {
         const successSound = new Audio('/success.mp3'); // Optional
         successSound.play().catch(() => {});
 
-        // Delay alert slightly to let UI update
+        // Delay modal slightly to let UI update
         setTimeout(() => {
-            alert(`✅ Welcome, ${matchedEmployee.name}!\n\nStatus: ${result.data.status?.toUpperCase()}`);
+            const status = result.data.status?.toUpperCase();
+            showModal('success', `Welcome, ${matchedEmployee.name}!`, `Check-in berhasil!\nStatus: ${status === 'ON_TIME' ? '✅ On Time' : status === 'LATE' ? '⏰ Late' : status}`);
             setCapturedImage(null);
             setVerificationStatus('idle');
             setIdentifiedUser(null);
         }, 1000);
       } else {
         const err = await res.json();
-        alert("Check-in Error: " + err.error);
+        showModal('error', 'Check-in Error', err.error || 'An unexpected error occurred.');
         setVerificationStatus('failed');
       }
 
     } catch (error: any) {
       console.error(error);
-      alert("An unexpected error occurred during check-in.");
+      showModal('error', 'Error', 'An unexpected error occurred during check-in. Please try again.');
       setVerificationStatus('failed');
     } finally {
       setCheckingIn(false);
@@ -362,6 +379,77 @@ export default function AttendancePage() {
              <Loader2 className="h-4 w-4 animate-spin text-[#13ec6d]" />
              Downloading Face Database...
           </div>
+       )}
+
+      {/* Custom Modal */}
+      {modal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onClick={closeModal}>
+          {/* Backdrop with blur */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200" />
+
+          {/* Modal Card */}
+          <div
+            className="relative w-full max-w-sm rounded-2xl border bg-zinc-900 p-6 shadow-2xl animate-in zoom-in-95 fade-in duration-300"
+            style={{
+              borderColor: modal.type === 'success' ? '#13ec6d' :
+                           modal.type === 'error' ? '#ef4444' :
+                           modal.type === 'warning' ? '#f59e0b' : '#3b82f6',
+              boxShadow: `0 0 40px ${modal.type === 'success' ? 'rgba(19,236,109,0.15)' :
+                           modal.type === 'error' ? 'rgba(239,68,68,0.15)' :
+                           modal.type === 'warning' ? 'rgba(245,158,11,0.15)' : 'rgba(59,130,246,0.15)'}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={closeModal}
+              className="absolute top-3 right-3 text-zinc-500 hover:text-white transition-colors p-1 rounded-full hover:bg-zinc-800"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Icon */}
+            <div className="flex justify-center mb-4">
+              <div className={`p-4 rounded-full ${
+                modal.type === 'success' ? 'bg-[#13ec6d]/10' :
+                modal.type === 'error' ? 'bg-red-500/10' :
+                modal.type === 'warning' ? 'bg-amber-500/10' : 'bg-blue-500/10'
+              }`}>
+                {modal.type === 'success' && <CheckCircle className="h-10 w-10 text-[#13ec6d]" />}
+                {modal.type === 'error' && <XCircle className="h-10 w-10 text-red-500" />}
+                {modal.type === 'warning' && <AlertTriangle className="h-10 w-10 text-amber-500" />}
+                {modal.type === 'info' && <Info className="h-10 w-10 text-blue-500" />}
+              </div>
+            </div>
+
+            {/* Title */}
+            <h3 className={`text-center text-lg font-bold mb-2 ${
+              modal.type === 'success' ? 'text-[#13ec6d]' :
+              modal.type === 'error' ? 'text-red-400' :
+              modal.type === 'warning' ? 'text-amber-400' : 'text-blue-400'
+            }`}>
+              {modal.title}
+            </h3>
+
+            {/* Message */}
+            <p className="text-center text-sm text-zinc-400 whitespace-pre-line mb-6">
+              {modal.message}
+            </p>
+
+            {/* Button */}
+            <Button
+              onClick={closeModal}
+              className={`w-full h-11 rounded-xl font-semibold transition-all ${
+                modal.type === 'success' ? 'bg-[#13ec6d] text-black hover:bg-[#13ec6d]/90' :
+                modal.type === 'error' ? 'bg-red-500 text-white hover:bg-red-500/90' :
+                modal.type === 'warning' ? 'bg-amber-500 text-black hover:bg-amber-500/90' :
+                'bg-blue-500 text-white hover:bg-blue-500/90'
+              }`}
+            >
+              OK
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
