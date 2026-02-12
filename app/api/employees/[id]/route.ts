@@ -4,13 +4,14 @@ import pool from '@/lib/db';
 // GET: Fetch single employee (Optional, but useful)
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const client = await pool.connect();
     const result = await client.query(
       'SELECT id, name, email, role, created_at, face_descriptor FROM users WHERE id = $1',
-      [params.id]
+      [id]
     );
     client.release();
 
@@ -28,9 +29,10 @@ export async function GET(
 // PUT: Update employee
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const { name, email, role, faceDescriptor } = body;
 
@@ -49,7 +51,7 @@ export async function PUT(
       }
 
       query += ` WHERE id = $${paramIndex} RETURNING id, name, email, role, created_at`;
-      values.push(params.id);
+      values.push(id);
 
       const result = await client.query(query, values);
 
@@ -73,12 +75,13 @@ export async function PUT(
 // DELETE: Delete employee
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
   ) {
     try {
+      const { id } = await params;
       const client = await pool.connect();
       try {
-        const result = await client.query('DELETE FROM users WHERE id = $1 RETURNING id', [params.id]);
+        const result = await client.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
 
         if (result.rowCount === 0) {
             return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
