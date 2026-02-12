@@ -1,0 +1,152 @@
+export const translations = {
+  en: {
+    // Sidebar
+    dashboard: "Dashboard",
+    employees: "Employees",
+    reports: "Reports",
+    settings: "Settings",
+    logout: "Logout",
+
+    // Dashboard
+    dashboardOverview: "Dashboard Overview",
+    welcome: "Welcome back, here's what's happening today.",
+    totalEmployees: "Total Employees",
+    presentToday: "Present Today",
+    lateAbsent: "Late / Absent",
+    recentAttendance: "Recent Attendance",
+    viewAll: "View All",
+    avgCheckIn: "Avg. Check-in Time",
+    unaccounted: "Unaccounted",
+    rowsPerPage: "Rows per page",
+    previous: "Previous",
+    next: "Next",
+    of: "of",
+
+    // Employees
+    employeesTitle: "Employees",
+    employeesDesc: "Manage your team members and their biometric data.",
+    addEmployee: "Add Employee",
+    searchEmployee: "Search employee...",
+    noEmployees: "No employees found.",
+
+    // Reports
+    attendanceOverview: "Attendance Overview",
+    attendanceOverviewDesc: "Analyze attendance trends and punctuality metrics for your team.",
+    dailyVolume: "Daily Attendance Volume",
+    visualTrend: "Visual Trend (Mock Data)",
+    todaysPunctuality: "Today's Punctuality",
+    onTime: "On-Time",
+    late: "Late",
+    absent: "Absent",
+    monthlySummary: "Monthly Summary",
+    employee: "Employee",
+    role: "Role",
+    daysPresent: "Days Present",
+    lateArrivals: "Late Arrivals",
+    status: "Status",
+    statusExcellent: "Excellent",
+    statusNeedsImp: "Needs Imp.",
+    noAttendanceData: "No attendance data found.",
+
+    // Settings
+    appSettings: "Application Settings",
+    appSettingsDesc: "Manage general preferences, geo-fencing rules, working hours, and system notifications.",
+    generalSettings: "General Settings",
+    companyName: "Company Name",
+    appLogo: "Application Logo",
+    uploadLogo: "Upload Logo",
+    logoUploaded: "Logo Uploaded",
+    attendanceRules: "Attendance Rules",
+    checkInRadius: "Check-in Radius",
+    lateTolerance: "Late Tolerance",
+    officeStartTime: "Office Start Time",
+    officeEndTime: "Office End Time",
+    roleManagement: "Role Management",
+    activeRoles: "Active Roles",
+    addRole: "Add New Role",
+    notificationSettings: "Notification Settings",
+    lateCheckInAlerts: "Late Check-in Alerts",
+    saveChanges: "Save Changes",
+    saving: "Saving...",
+
+    // Language
+    language: "Language",
+    selectLanguage: "Select Language",
+  },
+  id: {
+    // Sidebar
+    dashboard: "Dasbor",
+    employees: "Karyawan",
+    reports: "Laporan",
+    settings: "Pengaturan",
+    logout: "Keluar",
+
+    // Dashboard
+    dashboardOverview: "Ringkasan Dasbor",
+    welcome: "Selamat datang kembali, ini ringkasan hari ini.",
+    totalEmployees: "Total Karyawan",
+    presentToday: "Hadir Hari Ini",
+    lateAbsent: "Telat / Absen",
+    recentAttendance: "Absensi Terbaru",
+    viewAll: "Lihat Semua",
+    avgCheckIn: "Rata-rata Masuk",
+    unaccounted: "Tanpa Keterangan",
+    rowsPerPage: "Baris per halaman",
+    previous: "Sebelumnya",
+    next: "Selanjutnya",
+    of: "dari",
+
+    // Employees
+    employeesTitle: "Karyawan",
+    employeesDesc: "Kelola anggota tim dan data biometrik mereka.",
+    addEmployee: "Tambah Karyawan",
+    searchEmployee: "Cari karyawan...",
+    noEmployees: "Tidak ada karyawan ditemukan.",
+
+    // Reports
+    attendanceOverview: "Ringkasan Absensi",
+    attendanceOverviewDesc: "Analisis tren absensi dan metrik ketepatan waktu tim Anda.",
+    dailyVolume: "Volume Absensi Harian",
+    visualTrend: "Tren Visual (Data Mock)",
+    todaysPunctuality: "Ketepatan Waktu Hari Ini",
+    onTime: "Tepat Waktu",
+    late: "Terlambat",
+    absent: "Absen",
+    monthlySummary: "Ringkasan Bulanan",
+    employee: "Karyawan",
+    role: "Jabatan",
+    daysPresent: "Hari Masuk",
+    lateArrivals: "Keterlambatan",
+    status: "Status",
+    statusExcellent: "Bagus",
+    statusNeedsImp: "Perlu Peningkatan",
+    noAttendanceData: "Tidak ada data absensi ditemukan.",
+
+    // Settings
+    appSettings: "Pengaturan Aplikasi",
+    appSettingsDesc: "Kelola preferensi umum, aturan radius, jam kerja, dan notifikasi sistem.",
+    generalSettings: "Pengaturan Umum",
+    companyName: "Nama Perusahaan",
+    appLogo: "Logo Aplikasi",
+    uploadLogo: "Unggah Logo",
+    logoUploaded: "Logo Terunggah",
+    attendanceRules: "Aturan Absensi",
+    checkInRadius: "Radius Check-in",
+    lateTolerance: "Toleransi Keterlambatan",
+    officeStartTime: "Jam Masuk Kantor",
+    officeEndTime: "Jam Pulang Kantor",
+    roleManagement: "Manajemen Jabatan",
+    activeRoles: "Jabatan Aktif",
+    addRole: "Tambah Jabatan Baru",
+    notificationSettings: "Pengaturan Notifikasi",
+    lateCheckInAlerts: "Notifikasi Keterlambatan",
+    saveChanges: "Simpan Perubahan",
+    saving: "Menyimpan...",
+
+    // Language
+    language: "Bahasa",
+    selectLanguage: "Pilih Bahasa",
+  }
+};
+
+export type Language = 'en' | 'id';
