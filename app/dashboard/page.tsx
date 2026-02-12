@@ -209,26 +209,24 @@ export default function DashboardPage() {
                 {/* Stats Grid */}
                 <div className="grid gap-4 md:grid-cols-3">
                     <StatsCard
-                      title={t('totalEmployees')}
-                      value={stats.totalEmployees || 0}
+                      label={t('totalEmployees')}
+                      value={String(stats.totalEmployees || 0)}
                       icon={Users}
-                      description="Registered"
+                      subValue="Registered"
                     />
                     <StatsCard
-                      title={t('presentToday')}
-                      value={stats.presentCount || 0}
+                      label={t('presentToday')}
+                      value={String(stats.presentCount || 0)}
                       icon={CheckCircle}
-                      description={`${stats.attendanceRate || 0}% Attendance Rate`}
-                      trend="up"
-                      trendValue="12%"
+                      subValue={`${stats.attendanceRate || 0}% Attendance Rate`}
+                      variant="success"
                     />
                     <StatsCard
-                      title={t('lateAbsent')}
-                      value={stats.lateCount || 0}
+                      label={t('lateAbsent')}
+                      value={String(stats.lateCount || 0)}
                       icon={AlertCircle}
-                      description={`${stats.lateCount || 0} Late, ${stats.absentCount || 0} Absent`}
-                      trend="down"
-                      trendValue="5%"
+                      subValue={`${stats.lateCount || 0} Late, ${stats.absentCount || 0} Absent`}
+                      variant="warning"
                     />
                 </div>
 

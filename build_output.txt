@@ -1,0 +1,56 @@
+﻿Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+node.exe : ΓÜá The "middleware" 
+file convention is deprecated. 
+Please use "proxy" instead. Learn 
+more: https://nextjs.org/docs/messa
+ges/middleware-to-proxy
+At D:\MY\NodeJS\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotS 
+   pecified: (ΓÜá The "middle...l  
+  eware-to-proxy:String) [], Rem   
+ oteException
+    + FullyQualifiedErrorId : Nati 
+   veCommandError
+ 
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 3.0s
+  Running TypeScript ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/18) ...
+  Generating static pages using 11 workers (4/18) 
+  Generating static pages using 11 workers (8/18) 
+  Generating static pages using 11 workers (13/18) 
+Γ£ô Generating static pages using 11 workers (18/18) in 394.5ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ ╞Æ /api/attendance/[id]
+Γö£ ╞Æ /api/auth/login
+Γö£ ╞Æ /api/auth/logout
+Γö£ ╞Æ /api/check-in
+Γö£ ╞Æ /api/dashboard/reports
+Γö£ ╞Æ /api/dashboard/stats
+Γö£ ╞Æ /api/employees
+Γö£ ╞Æ /api/employees/[id]
+Γö£ ╞Æ /api/roles
+Γö£ ╞Æ /api/roles/[id]
+Γö£ ╞Æ /api/settings
+Γö£ Γùï /attendance
+Γö£ Γùï /dashboard
+Γö£ Γùï /dashboard/employees
+Γö£ Γùï /dashboard/reports
+Γö£ Γùï /dashboard/settings
+Γöö Γùï /login
+
+
+╞Æ Proxy (Middleware)
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

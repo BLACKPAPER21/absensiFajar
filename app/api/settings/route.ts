@@ -9,7 +9,7 @@ export async function GET() {
     client.release();
 
     // Convert array of {key, value} to object {key: value}
-    const settings = result.rows.reduce((acc, row) => {
+    const settings = result.rows.reduce((acc: Record<string, string>, row: any) => {
       acc[row.key] = row.value;
       return acc;
     }, {});

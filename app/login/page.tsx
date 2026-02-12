@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,14 @@ import { Hexagon, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const role = searchParams.get("role") || "admin"; // Defaulting to Admin for the "High Fidelity" preview
