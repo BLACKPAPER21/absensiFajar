@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     let onTime = 0;
     let late = 0;
 
-    statusRes.rows.forEach(row => {
+    statusRes.rows.forEach((row: any) => {
         if (row.status === 'on_time') onTime = parseInt(row.count);
         if (row.status === 'late') late = parseInt(row.count);
     });
