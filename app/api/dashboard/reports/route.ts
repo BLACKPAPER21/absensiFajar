@@ -15,11 +15,11 @@ export async function GET(request: Request) {
     const totalEmployees = parseInt(empRes.rows[0].count);
 
     // 2. Avg Check-In Time (Filtered by Date)
-    // Adjust to WIB (UTC+7) manually since DB is likely UTC
+    // Adjust to WIB (UTC+8) since DB stores UTC
     const avgRes = await client.query(`
-        SELECT TO_CHAR(AVG(check_in_time::time) + interval '7 hours', 'HH24:MI') as avg_time
+        SELECT TO_CHAR(AVG(check_in_time::time) + interval '8 hours', 'HH24:MI') as avg_time
         FROM attendance_logs
-        WHERE DATE(check_in_time) = $1
+        WHERE DATE(check_in_time + interval '8 hours') = $1
     `, [today]);
     let avgTime = "N/A";
     if (avgRes.rows[0]?.avg_time) {
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     const uniquePresentRes = await client.query(`
         SELECT COUNT(DISTINCT user_id) as count
         FROM attendance_logs
-        WHERE DATE(check_in_time) = $1
+        WHERE DATE(check_in_time + interval '8 hours') = $1
     `, [today]);
     const uniquePresent = parseInt(uniquePresentRes.rows[0].count);
 
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     const statusRes = await client.query(`
         SELECT status, COUNT(*) as count
         FROM attendance_logs
-        WHERE DATE(check_in_time) = $1
+        WHERE DATE(check_in_time + interval '8 hours') = $1
         GROUP BY status
     `, [today]);
 
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
                SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_count
         FROM users u
         LEFT JOIN attendance_logs a ON u.id = a.user_id
-          AND DATE(a.check_in_time) >= $1 AND DATE(a.check_in_time) <= $2
+          AND DATE(a.check_in_time + interval '8 hours') >= $1 AND DATE(a.check_in_time + interval '8 hours') <= $2
         WHERE u.role = 'employee'
         GROUP BY u.id
     `, [monthStart, monthEnd]);

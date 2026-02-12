@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 // GET: Fetch single employee (Optional, but useful)
 export async function GET(
@@ -34,7 +35,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, email, role, faceDescriptor } = body;
+    const { name, email, role, faceDescriptor, password } = body;
 
     const client = await pool.connect();
 
@@ -47,6 +48,14 @@ export async function PUT(
       if (faceDescriptor) {
         query += `, face_descriptor = $${paramIndex}`;
         values.push(JSON.stringify(faceDescriptor));
+        paramIndex++;
+      }
+
+      // Bug #6 Fix: Handle password updates
+      if (password && password.trim() !== '') {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        query += `, password_hash = $${paramIndex}`;
+        values.push(hashedPassword);
         paramIndex++;
       }
 

@@ -14,20 +14,25 @@ export async function GET(request: Request) {
     const empResult = await client.query('SELECT COUNT(*) FROM users WHERE role = \'employee\'');
     const totalEmployees = parseInt(empResult.rows[0].count);
 
-    // Today's Attendance Stats
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    // Today's date in WIB (UTC+8)
+    const now = new Date();
+    const wibDate = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const today = wibDate.toISOString().split('T')[0]; // YYYY-MM-DD in WIB
 
     const presentResult = await client.query(
-        `SELECT COUNT(*) FROM attendance_logs WHERE DATE(check_in_time) = $1`,
+        `SELECT COUNT(DISTINCT user_id) FROM attendance_logs WHERE DATE(check_in_time + interval '8 hours') = $1`,
         [today]
     );
     const presentToday = parseInt(presentResult.rows[0].count);
 
     const lateResult = await client.query(
-        `SELECT COUNT(*) FROM attendance_logs WHERE DATE(check_in_time) = $1 AND status = 'late'`,
+        `SELECT COUNT(*) FROM attendance_logs WHERE DATE(check_in_time + interval '8 hours') = $1 AND status = 'late'`,
         [today]
     );
     const lateToday = parseInt(lateResult.rows[0].count);
+
+    // Attendance Rate
+    const attendanceRate = totalEmployees > 0 ? Math.round((presentToday / totalEmployees) * 100) : 0;
 
     // Total Logs Count (for pagination)
     const totalLogsResult = await client.query('SELECT COUNT(*) FROM attendance_logs');
@@ -49,7 +54,8 @@ export async function GET(request: Request) {
         totalEmployees,
         presentToday,
         lateToday,
-        absentToday: totalEmployees - presentToday // Simple calc
+        absentToday: Math.max(0, totalEmployees - presentToday),
+        attendanceRate
       },
       recentActivity: recentLogs.rows,
       pagination: {

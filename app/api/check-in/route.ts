@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
-const MAX_DISTANCE_METERS = 100;
 const OFFICE_COORDS = {
   lat: -5.13648916306921,
   lng: 119.44168603184485,
@@ -23,6 +22,8 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 export async function POST(request: Request) {
+  const client = await pool.connect();
+
   try {
     const { userId, lat, lng, selfieUrl, confidenceScore } = await request.json();
 
@@ -30,30 +31,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing check-in data' }, { status: 400 });
     }
 
-    // Server-side Geolocation Validation
-    const distance = calculateDistance(lat, lng, OFFICE_COORDS.lat, OFFICE_COORDS.lng);
-
-    // Determine status
-    // For now, simple logic: if distance > MAX => Reject (or mark as invalid? Frontend blocks it, but backend should too)
-    if (distance > MAX_DISTANCE_METERS) {
-        return NextResponse.json({ error: `Too far from office (${distance.toFixed(0)}m)` }, { status: 403 });
-    }
-
-    // Time Status Logic - Read settings from database
-    const client = await pool.connect();
-
-    // Fetch office settings
-    let officeStartHour = 8; // default 08:00 AM
+    // --- Bug #3 Fix: Read check_in_radius from DB settings ---
+    let maxDistance = 100; // default fallback
+    let officeStartHour = 8;
     let officeStartMinute = 0;
-    let lateTolerance = 15; // default 15 minutes
+    let lateTolerance = 15;
 
     try {
       const settingsRes = await client.query(
-        `SELECT key, value FROM settings WHERE key IN ('office_start_time', 'late_tolerance')`
+        `SELECT key, value FROM settings WHERE key IN ('check_in_radius', 'office_start_time', 'late_tolerance')`
       );
       for (const row of settingsRes.rows) {
+        if (row.key === 'check_in_radius') {
+          maxDistance = parseInt(row.value) || 100;
+        }
         if (row.key === 'office_start_time') {
-          // Parse "08:00 AM" or "09:00 AM" format
           const timeStr = row.value;
           const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
           if (match) {
@@ -74,18 +66,40 @@ export async function POST(request: Request) {
       console.warn('Could not fetch settings, using defaults', e);
     }
 
-    // Calculate time in WIB (UTC+8)
+    // Server-side Geolocation Validation
+    const distance = calculateDistance(lat, lng, OFFICE_COORDS.lat, OFFICE_COORDS.lng);
+
+    if (distance > maxDistance) {
+      return NextResponse.json({ error: `Too far from office (${distance.toFixed(0)}m). Max: ${maxDistance}m` }, { status: 403 });
+    }
+
+    // --- Bug #4 Fix: Duplicate check-in prevention ---
     const now = new Date();
-    const wibOffset = 8 * 60; // WIB is UTC+8
+    const wibOffset = 8 * 60;
     const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
     const wibMinutes = (utcMinutes + wibOffset) % (24 * 60);
 
-    // Calculate deadline: office start + late tolerance
-    const deadlineMinutes = officeStartHour * 60 + officeStartMinute + lateTolerance;
+    // Calculate today's date in WIB
+    const wibDate = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const todayWIB = wibDate.toISOString().split('T')[0];
 
+    const existingLog = await client.query(
+      `SELECT id FROM attendance_logs WHERE user_id = $1 AND DATE(check_in_time + interval '8 hours') = $2`,
+      [userId, todayWIB]
+    );
+
+    if (existingLog.rows.length > 0) {
+      return NextResponse.json(
+        { error: 'You have already checked in today.' },
+        { status: 409 }
+      );
+    }
+
+    // --- Time Status Logic ---
+    const deadlineMinutes = officeStartHour * 60 + officeStartMinute + lateTolerance;
     const status = wibMinutes <= deadlineMinutes ? 'on_time' : 'late';
 
-    console.log(`Check-in: WIB ${Math.floor(wibMinutes/60)}:${String(wibMinutes%60).padStart(2,'0')}, Deadline: ${Math.floor(deadlineMinutes/60)}:${String(deadlineMinutes%60).padStart(2,'0')} → ${status}`);
+    console.log(`Check-in: WIB ${Math.floor(wibMinutes/60)}:${String(wibMinutes%60).padStart(2,'0')}, Deadline: ${Math.floor(deadlineMinutes/60)}:${String(deadlineMinutes%60).padStart(2,'0')}, Radius: ${maxDistance}m → ${status}`);
 
     const result = await client.query(
       `INSERT INTO attendance_logs (user_id, location_lat, location_lng, selfie_url, status, confidence_score)
@@ -93,7 +107,6 @@ export async function POST(request: Request) {
        RETURNING id, check_in_time, status`,
       [userId, lat, lng, selfieUrl, status, confidenceScore || 0]
     );
-    client.release();
 
     return NextResponse.json({
         success: true,
@@ -104,5 +117,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Check-in Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  } finally {
+    // --- Bug #7 Fix: Always release client ---
+    client.release();
   }
 }

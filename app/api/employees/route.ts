@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 
 export async function GET() {
@@ -42,9 +43,9 @@ export async function POST(request: Request) {
         // If creating new, password is essentially required, but we can fallback if absolutely needed
     }
 
-    // Use provided password or default, prefixed with mock hash signature
+    // Hash password properly with bcryptjs
     const finalPassword = password || 'employee123';
-    const passwordHash = `$2a$10$mockhash${finalPassword}`;
+    const passwordHash = await bcrypt.hash(finalPassword, 10);
 
     console.log("API: Attempting DB connection...");
     const client = await pool.connect();
