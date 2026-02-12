@@ -46,7 +46,7 @@ function LoginForm() {
         if (data.user.role === 'admin') router.push('/dashboard');
         else router.push('/attendance');
       } else {
-        setError(data.error || 'Login failed');
+        setError(data.details || data.error || 'Login failed');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');

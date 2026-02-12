@@ -50,8 +50,8 @@ export async function POST(request: Request) {
 
     return response;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }
