@@ -109,8 +109,8 @@ export default function DashboardPage() {
   return (
     <>
         {/* Top Header */}
-        <header className="px-8 py-6 flex items-center justify-between border-b border-zinc-900 bg-zinc-950/50 backdrop-blur-sm sticky top-0 z-10">
-          <div className="w-96">
+        <header className="px-4 md:px-8 py-4 md:py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-900 bg-zinc-950/50 backdrop-blur-sm sticky top-0 z-10">
+          <div className="w-full sm:w-auto sm:flex-1 sm:max-w-sm pl-10 lg:pl-0">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
               <Input
@@ -185,12 +185,12 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <div className="p-8 space-y-8 min-h-screen bg-zinc-950 text-white">
+        <div className="p-4 md:p-8 space-y-6 md:space-y-8 min-h-screen bg-zinc-950 text-white">
           {/* Welcome Section */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pl-10 lg:pl-0">
             <div>
-              <h1 className="text-3xl font-bold text-white tracking-tight">{t('dashboardOverview')}</h1>
-              <p className="text-zinc-400 mt-1">{t('welcome')}</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{t('dashboardOverview')}</h1>
+              <p className="text-zinc-400 mt-1 text-sm md:text-base">{t('welcome')}</p>
             </div>
             <Link href="/dashboard/employees">
                 <Button className="bg-[#13ec6d] text-black font-semibold hover:bg-[#13ec6d]/90 rounded-full px-6">
@@ -207,7 +207,7 @@ export default function DashboardPage() {
           ) : (
             <>
                 {/* Stats Grid */}
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                     <StatsCard
                       label={t('totalEmployees')}
                       value={String(stats.totalEmployees || 0)}
@@ -241,7 +241,7 @@ export default function DashboardPage() {
                         </Button>
                     </div>
 
-                    <div className="rounded-xl border border-zinc-900 bg-zinc-900/50 overflow-hidden">
+                    <div className="rounded-xl border border-zinc-900 bg-zinc-900/50 overflow-hidden overflow-x-auto">
                         <div className="px-6 py-4 border-b border-zinc-800 flex justify-between items-center">
                             <span className="text-zinc-400 text-sm">Showing recent logs</span>
                         </div>
@@ -251,7 +251,7 @@ export default function DashboardPage() {
                                 {t('noAttendanceData')}
                             </div>
                         ) : (
-                            <table className="w-full text-left text-sm">
+                            <table className="w-full text-left text-sm min-w-[700px]">
                                 <thead className="bg-zinc-900/80 border-b border-zinc-800 text-xs uppercase font-semibold text-zinc-400">
                                     <tr>
                                         <th className="px-6 py-4">{t('employee')}</th>
@@ -320,7 +320,7 @@ export default function DashboardPage() {
                         )}
 
                         {/* Pagination Controls */}
-                        <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800 bg-zinc-900/50">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 md:px-6 py-4 border-t border-zinc-800 bg-zinc-900/50">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-zinc-400">{t('rowsPerPage')}:</span>
                                 <select

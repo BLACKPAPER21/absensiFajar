@@ -10,7 +10,7 @@ export default function DashboardLayout({
     <LanguageProvider>
       <div className="flex min-h-screen bg-zinc-950 font-sans selection:bg-[#13ec6d] selection:text-black">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto min-w-0">
           {children}
         </main>
       </div>

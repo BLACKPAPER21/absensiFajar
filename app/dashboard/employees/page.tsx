@@ -197,11 +197,11 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="p-8 space-y-8 h-full bg-zinc-950 min-h-screen text-white relative">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8 h-full bg-zinc-950 min-h-screen text-white relative">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pl-10 lg:pl-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('employeesTitle')}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('employeesTitle')}</h1>
           <p className="text-zinc-400 mt-1">{t('employeesDesc')}</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
@@ -227,7 +227,7 @@ export default function EmployeesPage() {
             <p className="text-sm text-zinc-500 mt-1">Get started by adding a new team member.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {employees.map((employee) => (
             <div key={employee.id} className="group relative bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-700 transition-all hover:bg-zinc-900">
 

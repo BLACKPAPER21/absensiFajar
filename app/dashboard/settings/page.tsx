@@ -131,10 +131,10 @@ export default function SettingsPage() {
   if (loading) return <div className="p-8 text-white">Loading settings...</div>;
 
   return (
-    <div className="p-8 space-y-8 min-h-screen bg-zinc-950 text-white max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8 min-h-screen bg-zinc-950 text-white max-w-5xl mx-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pl-10 lg:pl-0">
         <div>
-           <h1 className="text-3xl font-bold tracking-tight">{t('appSettings')}</h1>
+           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('appSettings')}</h1>
            <p className="text-zinc-400 mt-1">{t('appSettingsDesc')}</p>
         </div>
         <Button
