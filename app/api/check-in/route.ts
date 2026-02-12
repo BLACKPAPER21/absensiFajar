@@ -39,12 +39,54 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Too far from office (${distance.toFixed(0)}m)` }, { status: 403 });
     }
 
-    // Time Status Logic (Simple 9 AM rule)
-    const now = new Date();
-    const hour = now.getHours();
-    const status = hour < 9 ? 'on_time' : 'late'; // Example rule
-
+    // Time Status Logic - Read settings from database
     const client = await pool.connect();
+
+    // Fetch office settings
+    let officeStartHour = 8; // default 08:00 AM
+    let officeStartMinute = 0;
+    let lateTolerance = 15; // default 15 minutes
+
+    try {
+      const settingsRes = await client.query(
+        `SELECT key, value FROM settings WHERE key IN ('office_start_time', 'late_tolerance')`
+      );
+      for (const row of settingsRes.rows) {
+        if (row.key === 'office_start_time') {
+          // Parse "08:00 AM" or "09:00 AM" format
+          const timeStr = row.value;
+          const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+          if (match) {
+            let h = parseInt(match[1]);
+            const m = parseInt(match[2]);
+            const period = match[3]?.toUpperCase();
+            if (period === 'PM' && h !== 12) h += 12;
+            if (period === 'AM' && h === 12) h = 0;
+            officeStartHour = h;
+            officeStartMinute = m;
+          }
+        }
+        if (row.key === 'late_tolerance') {
+          lateTolerance = parseInt(row.value) || 15;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch settings, using defaults', e);
+    }
+
+    // Calculate time in WIB (UTC+8)
+    const now = new Date();
+    const wibOffset = 8 * 60; // WIB is UTC+8
+    const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const wibMinutes = (utcMinutes + wibOffset) % (24 * 60);
+
+    // Calculate deadline: office start + late tolerance
+    const deadlineMinutes = officeStartHour * 60 + officeStartMinute + lateTolerance;
+
+    const status = wibMinutes <= deadlineMinutes ? 'on_time' : 'late';
+
+    console.log(`Check-in: WIB ${Math.floor(wibMinutes/60)}:${String(wibMinutes%60).padStart(2,'0')}, Deadline: ${Math.floor(deadlineMinutes/60)}:${String(deadlineMinutes%60).padStart(2,'0')} → ${status}`);
+
     const result = await client.query(
       `INSERT INTO attendance_logs (user_id, location_lat, location_lng, selfie_url, status, confidence_score)
        VALUES ($1, $2, $3, $4, $5, $6)
