@@ -3,9 +3,9 @@
 ## Sistem Informasi Absensi Berbasis Face Recognition dan Geolokasi
 
 **Nama Proyek:** Absensi Fajar
-**Versi Dokumen:** 1.0
+**Versi Dokumen:** 2.0
 **Tanggal:** 21 Februari 2026
-**Status:** Draft
+**Status:** Final Draft
 
 ---
 
@@ -15,11 +15,13 @@
 2. [Deskripsi Umum Sistem](#2-deskripsi-umum-sistem)
 3. [Kebutuhan Fungsional](#3-kebutuhan-fungsional)
 4. [Kebutuhan Non-Fungsional](#4-kebutuhan-non-fungsional)
-5. [Arsitektur Sistem](#5-arsitektur-sistem)
-6. [Desain Database](#6-desain-database)
-7. [Antarmuka Sistem](#7-antarmuka-sistem)
-8. [Batasan Sistem](#8-batasan-sistem)
-9. [Asumsi dan Ketergantungan](#9-asumsi-dan-ketergantungan)
+5. [Kebutuhan Lainnya](#5-kebutuhan-lainnya)
+6. [Use Case](#6-use-case)
+7. [Arsitektur Sistem](#7-arsitektur-sistem)
+8. [Desain Database](#8-desain-database)
+9. [Antarmuka Sistem](#9-antarmuka-sistem)
+10. [Batasan Sistem](#10-batasan-sistem)
+11. [Asumsi dan Ketergantungan](#11-asumsi-dan-ketergantungan)
 
 ---
 
@@ -267,59 +269,386 @@ Sistem menampilkan metrik berikut untuk tanggal yang dipilih:
 
 ### 4.1 Keamanan (Security)
 
-| ID | Kebutuhan |
-|---|---|
-| NFR-SEC-01 | Password karyawan di-hash menggunakan `bcryptjs` dengan salt round 10 sebelum disimpan. |
-| NFR-SEC-02 | Autentikasi sesi menggunakan JWT yang ditandatangani dengan `JWT_SECRET` dari environment variable. |
-| NFR-SEC-03 | Middleware Next.js memverifikasi token pada setiap permintaan ke `/dashboard/*`. |
-| NFR-SEC-04 | Koneksi database menggunakan SSL (`rejectUnauthorized: false` untuk kompatibilitas cloud DB). |
-| NFR-SEC-05 | Validasi geolokasi dilakukan di sisi **server** (bukan hanya client) untuk mencegah manipulasi. |
-| NFR-SEC-06 | Karyawan dengan role `employee` tidak dapat mengakses halaman admin (`/dashboard`). |
+| ID | Kebutuhan | Prioritas |
+|---|---|---|
+| NFR-SEC-01 | Password karyawan di-hash menggunakan `bcryptjs` dengan salt round **10** sebelum disimpan ke database. | Tinggi |
+| NFR-SEC-02 | Autentikasi sesi menggunakan **JWT** yang ditandatangani dengan `JWT_SECRET` yang disimpan sebagai environment variable, bukan hardcoded. | Tinggi |
+| NFR-SEC-03 | Middleware Next.js memverifikasi token JWT pada **setiap** permintaan ke `/dashboard/*` sebelum rendering. | Tinggi |
+| NFR-SEC-04 | Koneksi database menggunakan **SSL** untuk mengenkripsi data yang ditransmisikan antara aplikasi dan PostgreSQL. | Tinggi |
+| NFR-SEC-05 | Validasi geolokasi (geofencing) **wajib** dilakukan di sisi server untuk mencegah manipulasi koordinat dari sisi client. | Tinggi |
+| NFR-SEC-06 | Karyawan dengan role `employee` **tidak dapat** mengakses halaman admin (`/dashboard`); akan diredireksikan otomatis ke `/attendance`. | Tinggi |
+| NFR-SEC-07 | Data biometrik (face descriptor) disimpan sebagai JSONB terenkripsi di database dan tidak pernah dikirim ke pihak ketiga. | Tinggi |
+| NFR-SEC-08 | Sistem mencegah **SQL Injection** dengan menggunakan parameterized query (`$1, $2, ...`) pada semua operasi database. | Tinggi |
+| NFR-SEC-09 | Sesi admin otomatis kedaluwarsa jika JWT melewati waktu expired yang ditentukan. | Sedang |
+| NFR-SEC-10 | Environment variable sensitif (`DATABASE_URL`, `JWT_SECRET`) **tidak boleh** di-commit ke repositori (dijaga oleh `.gitignore`). | Tinggi |
 
 ### 4.2 Performa (Performance)
 
-| ID | Kebutuhan |
-|---|---|
-| NFR-PERF-01 | Halaman dashboard harus memuat data statistik dalam waktu kurang dari **3 detik** pada koneksi normal. |
-| NFR-PERF-02 | Koneksi ke database menggunakan **connection pool** (`pg.Pool`) untuk efisiensi. |
-| NFR-PERF-03 | Proses face matching dilakukan di sisi klien (browser) untuk mengurangi beban server. |
+| ID | Kebutuhan | Target Metrik |
+|---|---|---|
+| NFR-PERF-01 | Halaman dashboard harus memuat semua data statistik dalam waktu kurang dari **3 detik** pada koneksi broadband normal (≥10 Mbps). | < 3 detik |
+| NFR-PERF-02 | Koneksi ke database menggunakan **connection pool** (`pg.Pool`) agar tidak membuat koneksi baru di setiap request. | Pool aktif |
+| NFR-PERF-03 | Proses face descriptor matching dilakukan **sepenuhnya di sisi client** (browser) untuk mengurangi beban komputasi server. | Client-side |
+| NFR-PERF-04 | API endpoint `/api/dashboard/stats` harus merespons dalam kurang dari **2 detik** bahkan dengan 50 request bersamaan. | < 2 detik |
+| NFR-PERF-05 | Tabel kehadiran menggunakan **paginasi server-side** sehingga tidak memuat seluruh data sekaligus (max 20 baris per halaman). | < 500ms |
+| NFR-PERF-06 | Ukuran bundle JavaScript yang dikirim ke klien harus diminimalkan melalui **lazy loading** dan code splitting bawaan Next.js. | < 200 KB initial |
 
 ### 4.3 Ketersediaan (Availability)
 
-| ID | Kebutuhan |
-|---|---|
-| NFR-AVL-01 | Sistem harus beroperasi minimal **99%** waktu dalam sebulan. |
-| NFR-AVL-02 | Klien database harus selalu dirilis ke pool setelah operasi selesai (*client.release()*). |
+| ID | Kebutuhan | Target |
+|---|---|---|
+| NFR-AVL-01 | Sistem harus beroperasi dengan uptime minimal **99%** (kurang dari ~7.3 jam downtime per bulan). | 99% uptime |
+| NFR-AVL-02 | Klien koneksi database **selalu dirilis** ke pool setelah operasi selesai menggunakan blok `finally { client.release() }`. | Wajib |
+| NFR-AVL-03 | Sistem harus menangani kegagalan koneksi database dengan **graceful error response** (HTTP 500 + pesan error) tanpa crash server. | Handled |
+| NFR-AVL-04 | Jika model face-api.js gagal dimuat, sistem harus menampilkan **pesan fallback** kepada karyawan agar tidak bingung. | Handled |
 
 ### 4.4 Skalabilitas (Scalability)
 
-| ID | Kebutuhan |
-|---|---|
-| NFR-SCL-01 | Sistem harus mendukung minimal **200 karyawan** aktif tanpa degradasi performa signifikan. |
-| NFR-SCL-02 | API paginasi memastikan tabel tidak memuat seluruh data sekaligus. |
+| ID | Kebutuhan | Target |
+|---|---|---|
+| NFR-SCL-01 | Sistem harus mendukung minimal **200 karyawan** aktif dengan data kehadiran harian tanpa degradasi performa signifikan. | 200 users |
+| NFR-SCL-02 | Database harus mampu menyimpan **log kehadiran 2 tahun** (±200 karyawan × 250 hari kerja × 2 = ±100.000 baris) tanpa masalah. | 100K rows |
+| NFR-SCL-03 | Arsitektur berbasis **Next.js API Routes** memungkinkan migrasi mudah ke deployment serverless (Vercel) tanpa refaktor besar. | Serverless-ready |
+| NFR-SCL-04 | Kolom yang sering di-query (`user_id`, `check_in_time`) pada tabel `attendance_logs` harus diindeks di database. | Index pada FK |
 
 ### 4.5 Kemudahan Penggunaan (Usability)
 
+| ID | Kebutuhan | Kriteria |
+|---|---|---|
+| NFR-USE-01 | Antarmuka pengguna **responsif** (responsive design) dan mendukung tampilan desktop (≥1024px) maupun tablet/mobile (≥360px). | Responsive |
+| NFR-USE-02 | Sistem mendukung dua bahasa (**EN/ID**) yang bisa diubah secara instan tanpa reload penuh halaman. | Zero-reload switch |
+| NFR-USE-03 | Seluruh proses check-in karyawan (buka halaman → verifikasi wajah → konfirmasi) dapat diselesaikan dalam kurang dari **60 detik**. | < 60 detik |
+| NFR-USE-04 | Setiap pesan error atau sukses ditampilkan dengan jelas menggunakan komponen **toast notification** (`Sonner`) selama minimal 3 detik. | Toast 3 detik |
+| NFR-USE-05 | Ikon dan label navigasi sidebar harus **self-explanatory** sehingga admin baru tidak perlu pelatihan untuk navigasi dasar. | Intuitive nav |
+| NFR-USE-06 | Seluruh tombol aksi (tambah, hapus, simpan) harus memiliki **loading state** yang terlihat untuk mencegah double-submit. | Loading state |
+
+### 4.6 Keterpeliharaan (Maintainability)
+
 | ID | Kebutuhan |
 |---|---|
-| NFR-USE-01 | Antarmuka pengguna responsif dan mendukung tampilan desktop maupun mobile. |
-| NFR-USE-02 | Sistem mendukung dua bahasa (EN/ID) yang bisa diubah tanpa reload penuh. |
-| NFR-USE-03 | Proses check-in karyawan dapat diselesaikan dalam kurang dari **60 detik**. |
-| NFR-USE-04 | Pesan error ditampilkan dengan jelas menggunakan komponen toast (`Sonner`). |
+| NFR-MNT-01 | Seluruh kode ditulis dalam **TypeScript** untuk keamanan tipe statis, deteksi bug lebih awal, dan keterbacaan kode. |
+| NFR-MNT-02 | Koneksi database disentralisasi di satu file `lib/db.ts` agar konfigurasi pool mudah diubah tanpa menyentuh banyak file. |
+| NFR-MNT-03 | Teks antarmuka (UI strings) dipusatkan di `lib/translations.ts` sehingga penambahan bahasa baru tidak memerlukan perubahan komponen. |
+| NFR-MNT-04 | Komponen UI dipisah menjadi file-file independen (`Sidebar.tsx`, `StatsCard.tsx`) agar mudah diuji dan dimodifikasi secara terpisah. |
+| NFR-MNT-05 | Setiap API route menggunakan **try-catch-finally** untuk penanganan error yang konsisten dan pencegahan resource leak. |
+| NFR-MNT-06 | File konfigurasi environment (`.env.local`) terdokumentasi dalam README sehingga developer baru mudah melakukan setup. |
 
-### 4.6 Maintainability
+### 4.7 Portabilitas (Portability)
 
 | ID | Kebutuhan |
 |---|---|
-| NFR-MNT-01 | Kode ditulis dalam **TypeScript** untuk keamanan tipe dan keterbacaan. |
-| NFR-MNT-02 | Koneksi database disentralisasi di `lib/db.ts`. |
-| NFR-MNT-03 | Teks antarmuka dipusatkan di `lib/translations.ts` untuk kemudahan lokalisasi. |
+| NFR-PORT-01 | Aplikasi dapat di-deploy di berbagai platform hosting Node.js: **Vercel**, **VPS Linux**, atau **Docker container**. |
+| NFR-PORT-02 | Database dapat menggunakan PostgreSQL versi 13 ke atas, baik lokal maupun cloud (Neon, Supabase, Timescale). |
+| NFR-PORT-03 | Koordinat kantor (latitude/longitude) dapat diubah melalui konfigurasi tanpa harus mengubah source code utama. |
+
+---
+
+## 5. Kebutuhan Lainnya
+
+### 5.1 Kebutuhan Antarmuka Perangkat Keras
+
+| Komponen | Spesifikasi Minimum |
+|---|---|
+| **Kamera** | Resolusi minimal 720p (HD) untuk akurasi face recognition yang memadai |
+| **Processor (Client)** | Dual-core 1.6 GHz atau lebih untuk menjalankan model face-api.js di browser |
+| **RAM (Client)** | Minimal 2 GB RAM agar browser tidak crash saat memuat model face recognition |
+| **Koneksi Internet** | Minimal 1 Mbps untuk upload selfie dan komunikasi dengan API server |
+| **GPS/Lokasi** | Perangkat harus mendukung geolocation browser (GPS hardware atau WiFi positioning) |
+| **Server** | Minimal 1 vCPU, 512 MB RAM untuk menjalankan Next.js server (Vercel Free Tier memenuhi ini) |
+
+### 5.2 Kebutuhan Antarmuka Perangkat Lunak
+
+| Komponen | Versi Minimum | Catatan |
+|---|---|---|
+| Browser | Chrome 90+, Firefox 88+, Edge 90+ | Harus mendukung WebRTC dan Geolocation API |
+| Node.js (Server) | 18.x LTS | Required oleh Next.js 16 |
+| PostgreSQL | 13.x | Mendukung JSONB untuk face descriptor |
+| npm | 8.x | Package manager |
+
+### 5.3 Kebutuhan Antarmuka Komunikasi
+
+- **Protokol:** HTTPS (HTTP dengan TLS/SSL) wajib digunakan di environment produksi.
+- **Format Data API:** JSON untuk semua request dan response antara client dan server.
+- **Cookie:** Cookie `session_token` menggunakan flag `HttpOnly` dan `Secure` di produksi.
+- **Database:** Koneksi melalui PostgreSQL wire protocol dengan connection string berformat `postgresql://user:password@host:port/dbname`.
+
+### 5.4 Kebutuhan Privasi dan Perlindungan Data
+
+| ID | Kebutuhan |
+|---|---|
+| NFR-PRIV-01 | Data biometrik wajah (face descriptor) **hanya digunakan** untuk keperluan autentikasi kehadiran, tidak dibagikan ke pihak ketiga. |
+| NFR-PRIV-02 | Foto selfie karyawan yang diambil saat check-in disimpan dengan URL yang tidak dapat ditebak (gunakan UUID atau hash). |
+| NFR-PRIV-03 | Admin **tidak dapat** melihat password karyawan; hanya hash yang disimpan dan tidak ada operasi decode. |
+| NFR-PRIV-04 | Log akses dan aktivitas sistem harus dapat dihapus oleh admin untuk pemenuhan hak penghapusan data. |
+
+### 5.5 Kebutuhan Kegagalan dan Pemulihan (Failure & Recovery)
+
+| Skenario Kegagalan | Perilaku Sistem yang Diharapkan |
+|---|---|
+| Database tidak dapat diakses | API mengembalikan HTTP 500 + pesan error deskriptif; UI menampilkan toast error |
+| Kamera tidak tersedia / ditolak | Halaman `/attendance` menampilkan pesan panduan untuk mengaktifkan izin kamera |
+| GPS tidak tersedia / ditolak | Tombol check-in dinonaktifkan dengan pesan "Aktifkan lokasi untuk melanjutkan" |
+| Model face-api.js gagal dimuat | Sistem menampilkan pesan loading error dan opsi retry tanpa crash halaman |
+| Koneksi internet terputus saat check-in | API request gagal; sistem menampilkan toast "Gagal terhubung, coba lagi" |
+| JWT kedaluwarsa saat sesi aktif | Middleware me-redirect ke `/login` pada request berikutnya |
+| Duplikat check-in | API mengembalikan HTTP 409 + pesan "Anda sudah absen hari ini" |
+
+### 5.6 Kebutuhan Audit dan Logging
+
+| ID | Kebutuhan |
+|---|---|
+| NFR-AUD-01 | Setiap transaksi check-in berhasil dicatat dengan `check_in_time`, `user_id`, `status`, dan `confidence_score`. |
+| NFR-AUD-02 | Setiap penambahan atau penghapusan karyawan harus dapat dilacak melalui kolom `created_at` di tabel `users`. |
+| NFR-AUD-03 | Error kritis pada server (database error, API crash) di-log ke console server untuk keperluan debugging. |
+| NFR-AUD-04 | Admin dapat melihat riwayat kehadiran lengkap per karyawan melalui halaman Laporan. |
+
+---
+
+## 6. Use Case
+
+### 6.1 Diagram Use Case (Ringkasan)
+
+```
+                    ┌─────────────────────────────────────────────────────┐
+                    │              SISTEM ABSENSI FAJAR                  │
+                    │                                                     │
+                    │   ┌─────────────────┐   ┌──────────────────────┐  │
+                    │   │   UC-01         │   │   UC-02              │  │
+         ┌──────┐   │   │   Login Admin   │   │   Keluar (Logout)    │  │
+         │      │───┼──▶│                 │   │                      │  │
+         │      │   │   └─────────────────┘   └──────────────────────┘  │
+         │ADMIN │   │                                                     │
+         │      │   │   ┌─────────────────┐   ┌──────────────────────┐  │
+         │      │───┼──▶│   UC-03         │   │   UC-04              │  │
+         └──────┘   │   │   Lihat         │   │   Kelola Karyawan    │  │
+                    │   │   Dashboard     │   │   (CRUD)             │  │
+                    │   └─────────────────┘   └──────────────────────┘  │
+                    │                                                     │
+                    │   ┌─────────────────┐   ┌──────────────────────┐  │
+         ┌──────┐   │   │   UC-05         │   │   UC-06              │  │
+         │      │───┼──▶│   Check-in      │   │   Lihat Laporan      │  │
+         │KARYA-│   │   │   Absensi       │   │   dan Ekspor PDF     │  │
+         │ WAN  │   │   └─────────────────┘   └──────────────────────┘  │
+         │      │   │                                                     │
+         └──────┘   │   ┌─────────────────┐   ┌──────────────────────┐  │
+                    │   │   UC-07         │   │   UC-08              │  │
+                    │   │   Daftar Wajah  │   │   Kelola Pengaturan  │  │
+         ┌──────┐   │   │   (Enrollment)  │   │   Sistem             │  │
+         │ADMIN │───┼──▶│                 │───┤                      │  │
+         └──────┘   │   └─────────────────┘   └──────────────────────┘  │
+                    │                                                     │
+                    └─────────────────────────────────────────────────────┘
+```
+
+---
+
+### 6.2 Use Case: UC-01 – Login Admin
+
+| Field | Detail |
+|---|---|
+| **ID** | UC-01 |
+| **Nama** | Login Admin |
+| **Aktor** | Admin |
+| **Deskripsi** | Admin masuk ke sistem menggunakan email dan password untuk mengakses dashboard manajemen. |
+| **Precondition** | Admin belum login; halaman `/login` terbuka. |
+| **Postcondition** | Admin berhasil masuk dan diarahkan ke `/dashboard`. |
+| **Trigger** | Admin mengakses URL `/login` atau mencoba membuka `/dashboard` tanpa sesi aktif. |
+
+**Alur Normal:**
+1. Admin membuka halaman `/login`.
+2. Admin mengisi form: **email** dan **password**.
+3. Admin menekan tombol **Login**.
+4. Sistem mengirim `POST /api/auth/login` dengan kredensial.
+5. Server memverifikasi email di database, lalu membandingkan password dengan hash `bcryptjs`.
+6. Jika cocok, server membuat **JWT** dan menyimpannya di cookie `session_token`.
+7. Sistem mengarahkan admin ke `/dashboard`.
+
+**Alur Alternatif:**
+- *4a. Email tidak ditemukan* → sistem menampilkan toast error "Email atau password salah".
+- *5a. Password tidak cocok* → sistem menampilkan toast error "Email atau password salah".
+- *6a. JWT Secret tidak terkonfigurasi* → sistem menampilkan error 500.
+
+---
+
+### 6.3 Use Case: UC-02 – Logout
+
+| Field | Detail |
+|---|---|
+| **ID** | UC-02 |
+| **Nama** | Logout |
+| **Aktor** | Admin |
+| **Deskripsi** | Admin mengakhiri sesi aktif dan keluar dari sistem. |
+| **Precondition** | Admin sudah login dan berada di halaman dashboard. |
+| **Postcondition** | Sesi dihapus; admin diarahkan ke `/login`. |
+
+**Alur Normal:**
+1. Admin mengklik ikon profil di header dashboard.
+2. Dropdown menu muncul; admin memilih **Logout**.
+3. Sistem menampilkan konfirmasi dialog.
+4. Admin mengkonfirmasi logout.
+5. Sistem menghapus cookie `session_token` dan mengarahkan ke `/login`.
+
+---
+
+### 6.4 Use Case: UC-03 – Lihat Dashboard
+
+| Field | Detail |
+|---|---|
+| **ID** | UC-03 |
+| **Nama** | Lihat Dashboard |
+| **Aktor** | Admin |
+| **Deskripsi** | Admin memantau statistik kehadiran harian dan log kehadiran terbaru secara real-time. |
+| **Precondition** | Admin sudah login sebagai `admin`. |
+| **Postcondition** | Admin dapat melihat statistik dan tabel kehadiran terbaru. |
+
+**Alur Normal:**
+1. Admin mengakses `/dashboard`.
+2. Sistem memanggil `GET /api/dashboard/stats`.
+3. Sistem menampilkan **Stats Cards**: Total Karyawan, Hadir Hari Ini (+ attendance rate), Terlambat/Absen.
+4. Sistem menampilkan **tabel kehadiran terbaru** (5 baris per halaman).
+5. Admin dapat mengubah jumlah baris per halaman (5/10/20) dan navigasi paginasi.
+6. Admin dapat **menghapus** catatan kehadiran tertentu dengan mengklik ikon hapus.
+
+---
+
+### 6.5 Use Case: UC-04 – Kelola Karyawan (CRUD)
+
+| Field | Detail |
+|---|---|
+| **ID** | UC-04 |
+| **Nama** | Kelola Karyawan |
+| **Aktor** | Admin |
+| **Deskripsi** | Admin dapat menambah, melihat, mengedit, dan menghapus data karyawan beserta data biometrik wajahnya. |
+| **Precondition** | Admin sudah login. |
+| **Postcondition** | Data karyawan tersimpan/diperbarui/dihapus di database. |
+
+**Alur Normal – Tambah Karyawan:**
+1. Admin membuka `/dashboard/employees`.
+2. Admin mengklik tombol **Add Employee**.
+3. Admin mengisi form: nama, email, role, password (opsional).
+4. Admin mengambil foto wajah karyawan menggunakan kamera.
+5. Sistem mengekstrak **face descriptor** dari foto menggunakan `face-api.js`.
+6. Admin mengklik **Simpan**; sistem mengirim `POST /api/employees`.
+7. Server meng-hash password, menyimpan data dan face descriptor ke tabel `users`.
+8. Sistem menampilkan toast sukses dan memperbarui daftar karyawan.
+
+**Alur Alternatif:**
+- *3a. Email sudah terdaftar* → API mengembalikan 409; sistem menampilkan error "Email sudah terdaftar".
+- *4a. Tidak ada wajah terdeteksi* → sistem meminta admin untuk mengambil foto ulang.
+
+---
+
+### 6.6 Use Case: UC-05 – Check-in Absensi
+
+| Field | Detail |
+|---|---|
+| **ID** | UC-05 |
+| **Nama** | Check-in Absensi |
+| **Aktor** | Karyawan (Employee) |
+| **Deskripsi** | Karyawan melakukan absensi masuk harian menggunakan verifikasi wajah dan validasi lokasi GPS. |
+| **Precondition** | Karyawan memiliki data wajah terdaftar; browser mendukung kamera dan geolokasi. |
+| **Postcondition** | Catatan kehadiran tersimpan di `attendance_logs` dengan status `on_time` atau `late`. |
+| **Trigger** | Karyawan membuka halaman `/attendance` saat jam kerja. |
+
+**Alur Normal:**
+1. Karyawan membuka halaman `/attendance`.
+2. Sistem memuat model face-api.js dan mengaktifkan kamera.
+3. Karyawan mengizinkan akses kamera dan geolokasi.
+4. Sistem mendeteksi wajah secara real-time di video stream.
+5. Karyawan mengklik tombol **Absen Sekarang**; sistem mengambil selfie.
+6. Sistem mengekstrak face descriptor dari selfie dan mencocokkan dengan database.
+7. Karyawan teridentifikasi; sistem membaca koordinat GPS browser.
+8. Sistem mengirim `POST /api/check-in` dengan `{ userId, lat, lng, selfieUrl, confidenceScore }`.
+9. Server memvalidasi jarak ke kantor menggunakan formula Haversine.
+10. Server memeriksa apakah karyawan sudah check-in hari ini.
+11. Server menentukan status (`on_time` / `late`) berdasarkan waktu WIB.
+12. Data disimpan ke `attendance_logs`; server mengembalikan respons sukses.
+13. Sistem menampilkan konfirmasi "Absensi berhasil dicatat" kepada karyawan.
+
+**Alur Alternatif:**
+- *6a. Wajah tidak cocok dengan database* → sistem menampilkan error "Wajah tidak dikenali".
+- *9a. Karyawan di luar radius kantor* → API mengembalikan 403; sistem menampilkan "Anda terlalu jauh dari kantor".
+- *10a. Karyawan sudah check-in hari ini* → API mengembalikan 409; sistem menampilkan "Anda sudah absen hari ini".
+- *3a. Karyawan menolak izin kamera/GPS* → tombol absen dinonaktifkan dengan pesan panduan.
+
+---
+
+### 6.7 Use Case: UC-06 – Lihat Laporan dan Ekspor PDF
+
+| Field | Detail |
+|---|---|
+| **ID** | UC-06 |
+| **Nama** | Lihat Laporan dan Ekspor PDF |
+| **Aktor** | Admin |
+| **Deskripsi** | Admin menganalisis kehadiran karyawan berdasarkan tanggal dan mengekspor laporan ke format PDF. |
+| **Precondition** | Admin sudah login; terdapat data kehadiran di database. |
+| **Postcondition** | Admin mendapatkan laporan visual dan/atau file PDF laporan. |
+
+**Alur Normal:**
+1. Admin membuka `/dashboard/reports`.
+2. Sistem menampilkan laporan hari ini secara default.
+3. Admin memilih tanggal melalui filter tanggal.
+4. Sistem memanggil `GET /api/dashboard/reports?date=YYYY-MM-DD`.
+5. Sistem menampilkan: metrik harian (total karyawan, rata-rata check-in, jumlah absen), pie chart distribusi status, dan tabel ringkasan bulanan.
+6. Admin mengklik **Export PDF**.
+7. Sistem menggunakan `jsPDF` + `jspdf-autotable` untuk membuat file PDF.
+8. Browser mengunduh file PDF laporan secara otomatis.
+
+---
+
+### 6.8 Use Case: UC-07 – Pendaftaran Wajah (Face Enrollment)
+
+| Field | Detail |
+|---|---|
+| **ID** | UC-07 |
+| **Nama** | Pendaftaran Wajah |
+| **Aktor** | Admin |
+| **Deskripsi** | Admin mendaftarkan data biometrik wajah karyawan baru ke sistem agar dapat digunakan untuk proses check-in. |
+| **Precondition** | Admin sudah login; data profil karyawan sudah diisi. |
+| **Postcondition** | Face descriptor karyawan tersimpan di kolom `face_descriptor` tabel `users`. |
+
+**Alur Normal:**
+1. Admin membuka form tambah/edit karyawan di `/dashboard/employees`.
+2. Admin mengklik seksi **Face Enrollment** pada form.
+3. Kamera aktif dan menampilkan live video stream.
+4. Admin mengarahkan karyawan ke depan kamera hingga wajah terdeteksi.
+5. Admin mengklik tombol **Capture**; sistem mengambil gambar dari webcam.
+6. Sistem memproses gambar menggunakan `face-api.js` dan mengekstrak vektor face descriptor (128 dimensi).
+7. Descriptor disertakan dalam payload saat submit form karyawan.
+8. Server menyimpan descriptor ke database sebagai JSONB.
+
+**Alur Alternatif:**
+- *4a. Tidak ada wajah terdeteksi dalam frame* → sistem menampilkan pesan "Posisikan wajah di dalam frame".
+- *6a. Lebih dari satu wajah terdeteksi* → sistem meminta agar hanya satu orang di depan kamera.
+
+---
+
+### 6.9 Use Case: UC-08 – Kelola Pengaturan Sistem
+
+| Field | Detail |
+|---|---|
+| **ID** | UC-08 |
+| **Nama** | Kelola Pengaturan Sistem |
+| **Aktor** | Admin |
+| **Deskripsi** | Admin mengonfigurasi parameter operasional sistem seperti radius check-in, jam kerja, dan toleransi keterlambatan. |
+| **Precondition** | Admin sudah login. |
+| **Postcondition** | Pengaturan baru tersimpan di tabel `settings` dan langsung berlaku untuk check-in berikutnya. |
+
+**Alur Normal:**
+1. Admin membuka `/dashboard/settings`.
+2. Sistem mengambil pengaturan saat ini dari `GET /api/settings`.
+3. Admin mengubah nilai yang diinginkan (radius, jam mulai, toleransi, dll.).
+4. Admin mengklik **Save Changes**.
+5. Sistem mengirim `POST /api/settings` dengan nilai baru.
+6. Server mengupdate tabel `settings` di database.
+7. Sistem menampilkan toast "Pengaturan berhasil disimpan".
+8. Perubahan berlaku pada proses check-in berikutnya secara real-time.
 
 ---
 
 ## 5. Arsitektur Sistem
 
-### 5.1 Diagram Arsitektur High-Level
+### 7.1 Diagram Arsitektur High-Level
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -356,7 +685,7 @@ Sistem menampilkan metrik berikut untuk tanggal yang dipilih:
                 └───────────────────────┘
 ```
 
-### 5.2 Alur Proses Check-in
+### 7.2 Alur Proses Check-in
 
 ```
 Karyawan Buka /attendance
@@ -404,39 +733,63 @@ Return Success → Tampilkan Konfirmasi ke Karyawan
 
 ---
 
-## 6. Desain Database
+## 8. Desain Database
 
-### 6.1 Tabel: `users`
+### 8.1 Entity Relationship Diagram (ERD)
 
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | UUID / SERIAL | Primary key |
-| `name` | VARCHAR | Nama lengkap pengguna |
-| `email` | VARCHAR | Email unik (UNIQUE constraint) |
-| `role` | VARCHAR | Role: `admin` atau `employee` |
-| `password_hash` | VARCHAR | Password ter-hash menggunakan bcrypt |
-| `face_descriptor` | JSONB / TEXT | Array vektor wajah dari face-api.js |
-| `created_at` | TIMESTAMP | Waktu pendaftaran |
+```
+┌─────────────────────────────────┐         ┌──────────────────────────────────────┐
+│              users              │         │           attendance_logs             │
+├─────────────────────────────────┤         ├──────────────────────────────────────┤
+│ PK  id           SERIAL         │◄──┐     │ PK  id             SERIAL            │
+│     name         VARCHAR(255)   │   │     │ FK  user_id        INT (→ users.id)  │
+│     email        VARCHAR(255)   │   └─────│     check_in_time  TIMESTAMP         │
+│     role         VARCHAR(50)    │         │     location_lat   DECIMAL(10,8)     │
+│     password_hash VARCHAR(255)  │         │     location_lng   DECIMAL(11,8)     │
+│     face_descriptor JSONB       │         │     selfie_url     TEXT              │
+│     created_at   TIMESTAMP      │         │     status         VARCHAR(20)       │
+└─────────────────────────────────┘         │     confidence_score DECIMAL(5,4)   │
+                                            └──────────────────────────────────────┘
 
-### 6.2 Tabel: `attendance_logs`
+┌─────────────────────────────────┐
+│            settings             │
+├─────────────────────────────────┤
+│ PK  key     VARCHAR(100)        │
+│     value   TEXT                │
+└─────────────────────────────────┘
+```
 
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `id` | UUID / SERIAL | Primary key |
-| `user_id` | FK → users.id | ID karyawan yang check-in |
-| `check_in_time` | TIMESTAMP | Waktu check-in (UTC) |
-| `location_lat` | DECIMAL | Lintang GPS check-in |
-| `location_lng` | DECIMAL | Bujur GPS check-in |
-| `selfie_url` | TEXT | URL foto selfie check-in |
-| `status` | VARCHAR | Status: `on_time` atau `late` |
-| `confidence_score` | DECIMAL | Skor kemiripan wajah (0.0 – 1.0) |
+### 8.2 Tabel: `users`
 
-### 6.3 Tabel: `settings`
+| Kolom | Tipe | Constraint | Keterangan |
+|---|---|---|---|
+| `id` | SERIAL | PRIMARY KEY | Auto-increment ID unik |
+| `name` | VARCHAR(255) | NOT NULL | Nama lengkap pengguna |
+| `email` | VARCHAR(255) | NOT NULL, UNIQUE | Email unik untuk login |
+| `role` | VARCHAR(50) | NOT NULL | Role: `admin` atau `employee` |
+| `password_hash` | VARCHAR(255) | NOT NULL | Password ter-hash bcrypt |
+| `face_descriptor` | JSONB | NULLABLE | Array float 128-dimensi wajah |
+| `created_at` | TIMESTAMP | DEFAULT NOW() | Waktu pendaftaran (UTC) |
 
-| Kolom | Tipe | Keterangan |
-|---|---|---|
-| `key` | VARCHAR | Nama konfigurasi (PRIMARY KEY) |
-| `value` | TEXT | Nilai konfigurasi |
+### 8.3 Tabel: `attendance_logs`
+
+| Kolom | Tipe | Constraint | Keterangan |
+|---|---|---|---|
+| `id` | SERIAL | PRIMARY KEY | Auto-increment ID unik |
+| `user_id` | INT | NOT NULL, FK | Referensi ke `users.id` |
+| `check_in_time` | TIMESTAMP | DEFAULT NOW() | Waktu check-in (UTC) |
+| `location_lat` | DECIMAL(10,8) | NOT NULL | Lintang GPS saat check-in |
+| `location_lng` | DECIMAL(11,8) | NOT NULL | Bujur GPS saat check-in |
+| `selfie_url` | TEXT | NOT NULL | URL foto selfie karyawan |
+| `status` | VARCHAR(20) | NOT NULL | Status: `on_time` atau `late` |
+| `confidence_score` | DECIMAL(5,4) | DEFAULT 0 | Skor kemiripan wajah (0.0000–1.0000) |
+
+### 8.4 Tabel: `settings`
+
+| Kolom | Tipe | Constraint | Keterangan |
+|---|---|---|---|
+| `key` | VARCHAR(100) | PRIMARY KEY | Nama kunci konfigurasi |
+| `value` | TEXT | NOT NULL | Nilai konfigurasi |
 
 **Key yang tersedia:**
 
@@ -447,11 +800,90 @@ Return Success → Tampilkan Konfirmasi ke Karyawan
 | `late_tolerance` | `15` | Toleransi keterlambatan (menit) |
 | `office_end_time` | `17:00` | Jam selesai kerja |
 
+### 8.5 Skema DDL (Data Definition Language)
+
+```sql
+-- ============================================================
+-- SISTEM ABSENSI FAJAR - Database Schema
+-- PostgreSQL 13+
+-- ============================================================
+
+-- Tabel Pengguna (Admin & Karyawan)
+CREATE TABLE IF NOT EXISTS users (
+    id            SERIAL PRIMARY KEY,
+    name          VARCHAR(255) NOT NULL,
+    email         VARCHAR(255) NOT NULL UNIQUE,
+    role          VARCHAR(50)  NOT NULL DEFAULT 'employee'
+                  CHECK (role IN ('admin', 'employee')),
+    password_hash VARCHAR(255) NOT NULL,
+    face_descriptor JSONB,
+    created_at    TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+-- Index untuk pencarian karyawan berdasarkan email dan role
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role  ON users(role);
+
+-- ============================================================
+
+-- Tabel Log Kehadiran
+CREATE TABLE IF NOT EXISTS attendance_logs (
+    id               SERIAL PRIMARY KEY,
+    user_id          INT          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    check_in_time    TIMESTAMP    NOT NULL DEFAULT NOW(),
+    location_lat     DECIMAL(10,8) NOT NULL,
+    location_lng     DECIMAL(11,8) NOT NULL,
+    selfie_url       TEXT         NOT NULL,
+    status           VARCHAR(20)  NOT NULL
+                     CHECK (status IN ('on_time', 'late')),
+    confidence_score DECIMAL(5,4) NOT NULL DEFAULT 0.0000
+);
+
+-- Index untuk performa query dashboard dan laporan
+CREATE INDEX IF NOT EXISTS idx_attendance_user_id
+    ON attendance_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_check_in_time
+    ON attendance_logs(check_in_time);
+CREATE INDEX IF NOT EXISTS idx_attendance_date_wib
+    ON attendance_logs(DATE(check_in_time + INTERVAL '8 hours'));
+
+-- ============================================================
+
+-- Tabel Konfigurasi Sistem
+CREATE TABLE IF NOT EXISTS settings (
+    key   VARCHAR(100) PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+-- Data default konfigurasi
+INSERT INTO settings (key, value) VALUES
+    ('check_in_radius',   '100'),
+    ('office_start_time', '08:00'),
+    ('late_tolerance',    '15'),
+    ('office_end_time',   '17:00')
+ON CONFLICT (key) DO NOTHING;
+
+-- ============================================================
+-- Contoh Data Admin Awal
+-- (Password: admin123 - gunakan bcrypt hash di produksi!)
+-- ============================================================
+-- INSERT INTO users (name, email, role, password_hash)
+-- VALUES ('Super Admin', 'admin@company.com', 'admin',
+--         '$2b$10$xxxHashedPasswordHerexxx');
+```
+
+### 8.6 Relasi Antar Tabel
+
+| Relasi | Tipe | Keterangan |
+|---|---|---|
+| `users` → `attendance_logs` | One-to-Many (1:N) | Satu karyawan dapat memiliki banyak log kehadiran |
+| `attendance_logs.user_id` → `users.id` | Foreign Key | Dengan `ON DELETE CASCADE` (hapus user = hapus log kehadirannya) |
+
 ---
 
-## 7. Antarmuka Sistem
+## 9. Antarmuka Sistem
 
-### 7.1 Antarmuka Pengguna (UI)
+### 9.1 Antarmuka Pengguna (UI)
 
 | Halaman | Route | Akses | Deskripsi |
 |---|---|---|---|
@@ -462,7 +894,7 @@ Return Success → Tampilkan Konfirmasi ke Karyawan
 | Laporan | `/dashboard/reports` | Admin only | Laporan dan analisis kehadiran |
 | Pengaturan | `/dashboard/settings` | Admin only | Konfigurasi sistem |
 
-### 7.2 Antarmuka API
+### 9.2 Antarmuka API
 
 | Method | Endpoint | Akses | Deskripsi |
 |---|---|---|---|
@@ -478,7 +910,7 @@ Return Success → Tampilkan Konfirmasi ke Karyawan
 | GET | `/api/roles` | Admin | Ambil daftar role |
 | POST | `/api/roles` | Admin | Tambah role baru |
 
-### 7.3 Antarmuka Database
+### 9.3 Antarmuka Database
 
 Sistem terhubung ke PostgreSQL melalui:
 - **`DATABASE_URL`** – connection string PostgreSQL (dari environment variable `.env.local`)
@@ -487,7 +919,7 @@ Sistem terhubung ke PostgreSQL melalui:
 
 ---
 
-## 8. Batasan Sistem
+## 10. Batasan Sistem
 
 1. **Ketergantungan Kamera** – Proses check-in hanya dapat dilakukan pada perangkat dengan kamera yang berfungsi dan izin akses kamera diberikan oleh pengguna.
 2. **Ketergantungan GPS** – Proses check-in memerlukan akses lokasi GPS; akurasi bergantung pada perangkat dan sinyal GPS.
@@ -498,7 +930,7 @@ Sistem terhubung ke PostgreSQL melalui:
 
 ---
 
-## 9. Asumsi dan Ketergantungan
+## 11. Asumsi dan Ketergantungan
 
 ### 9.1 Asumsi
 
