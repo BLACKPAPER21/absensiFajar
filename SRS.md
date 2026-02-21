@@ -919,7 +919,439 @@ Sistem terhubung ke PostgreSQL melalui:
 
 ---
 
-## 10. Batasan Sistem
+## 10. Diagram UML
+
+> Diagram berikut dibuat menggunakan notasi **PlantUML**. Untuk merendernya, paste kode ke [plantuml.com](https://plantuml.com) atau ekstensi PlantUML di VS Code.
+
+---
+
+### 10.1 Class Diagram
+
+```plantuml
+@startuml Class_Diagram
+
+title Class Diagram - Sistem Absensi Fajar
+
+class User {
+  +id: int
+  +name: string
+  +email: string
+  +role: string
+  +passwordHash: string
+  +faceDescriptor: float[]
+  +createdAt: DateTime
+  --
+  +validatePassword(raw: string): boolean
+  +hasRole(role: string): boolean
+}
+
+class AttendanceLog {
+  +id: int
+  +userId: int
+  +checkInTime: DateTime
+  +locationLat: float
+  +locationLng: float
+  +selfieUrl: string
+  +status: StatusEnum
+  +confidenceScore: float
+  --
+  +isOnTime(): boolean
+  +getWIBTime(): DateTime
+}
+
+class Settings {
+  +key: string
+  +value: string
+  --
+  +get(key: string): string
+  +set(key: string, val: string): void
+}
+
+class AuthService {
+  +login(email: string, password: string): JWT
+  +verifyToken(token: string): Payload
+  +hashPassword(raw: string): string
+  +logout(): void
+}
+
+class CheckInService {
+  -officeCoords: Coordinates
+  --
+  +calculateDistance(lat: float, lng: float): float
+  +validateGeofence(lat: float, lng: float): boolean
+  +isDuplicate(userId: int, date: Date): boolean
+  +determineStatus(timeWIB: Time): StatusEnum
+  +saveLog(data: CheckInPayload): AttendanceLog
+}
+
+class FaceRecognitionService {
+  +loadModels(): void
+  +detectFace(imageData: Blob): FaceDescriptor
+  +matchFace(descriptor: float[], database: float[][]): MatchResult
+}
+
+class ReportService {
+  +getDailyStats(date: Date): DailyStats
+  +getMonthlySummary(month: Date): EmployeeSummary[]
+  +exportToPDF(data: ReportData): Blob
+}
+
+enum StatusEnum {
+  ON_TIME
+  LATE
+}
+
+User "1" o-- "0..*" AttendanceLog : has
+AuthService ..> User : uses
+CheckInService ..> AttendanceLog : creates
+CheckInService ..> Settings : reads
+FaceRecognitionService ..> User : reads faceDescriptor
+ReportService ..> AttendanceLog : aggregates
+ReportService ..> User : reads
+
+@enduml
+```
+
+---
+
+### 10.2 Sequence Diagram – Proses Login Admin
+
+```plantuml
+@startuml Sequence_Login
+
+title Sequence Diagram: Login Admin
+
+actor Admin
+participant "Browser\n/login" as Browser
+participant "Next.js Server\n/api/auth/login" as API
+participant "PostgreSQL" as DB
+
+Admin -> Browser : Isi email & password, klik Login
+Browser -> API : POST /api/auth/login\n{ email, password }
+API -> DB : SELECT user WHERE email = ?
+DB --> API : user row (id, role, passwordHash)
+alt Password Cocok (bcrypt.compare)
+  API --> Browser : Set cookie session_token (JWT)\nHTTP 200 OK
+  Browser --> Admin : Redirect ke /dashboard
+else Password Salah
+  API --> Browser : HTTP 401\n{ error: "Invalid credentials" }
+  Browser --> Admin : Tampilkan toast error
+end
+
+@enduml
+```
+
+---
+
+### 10.3 Sequence Diagram – Proses Check-in Karyawan
+
+```plantuml
+@startuml Sequence_CheckIn
+
+title Sequence Diagram: Check-in Absensi Karyawan
+
+actor Karyawan
+participant "Browser\n/attendance" as Browser
+participant "face-api.js" as FaceAPI
+participant "Geolocation API" as GeoAPI
+participant "Next.js Server\n/api/check-in" as API
+participant "PostgreSQL" as DB
+
+Karyawan -> Browser : Buka /attendance
+Browser -> FaceAPI : loadModels()
+FaceAPI --> Browser : Models loaded ✓
+Browser -> Browser : Aktifkan kamera (react-webcam)
+
+Karyawan -> Browser : Klik "Absen Sekarang"
+Browser -> FaceAPI : detectFace(selfieBlob)
+FaceAPI --> Browser : faceDescriptor[128]
+Browser -> DB : GET /api/employees (fetch all descriptors)
+DB --> Browser : users[] with faceDescriptors
+Browser -> FaceAPI : matchFace(descriptor, database)
+alt Wajah Cocok
+  FaceAPI --> Browser : { userId, confidenceScore }
+  Browser -> GeoAPI : getCurrentPosition()
+  GeoAPI --> Browser : { lat, lng }
+  Browser -> API : POST /api/check-in\n{ userId, lat, lng, selfieUrl, confidenceScore }
+  API -> DB : SELECT settings (radius, startTime, tolerance)
+  DB --> API : settings
+  API -> API : calculateDistance(lat, lng)
+  alt Dalam Radius Kantor
+    API -> DB : SELECT attendance_logs WHERE user=today
+    DB --> API : existing logs
+    alt Belum Check-in Hari Ini
+      API -> API : determineStatus(wibTime)
+      API -> DB : INSERT INTO attendance_logs
+      DB --> API : { id, checkInTime, status }
+      API --> Browser : HTTP 200\n{ success, status }
+      Browser --> Karyawan : ✅ Absensi Berhasil!
+    else Sudah Check-in
+      API --> Browser : HTTP 409\n{ error: 'Already checked in today' }
+      Browser --> Karyawan : ⚠️ Sudah absen hari ini
+    end
+  else Di Luar Radius
+    API --> Browser : HTTP 403\n{ error: 'Too far from office' }
+    Browser --> Karyawan : ❌ Terlalu jauh dari kantor
+  end
+else Wajah Tidak Cocok
+  FaceAPI --> Browser : No match found
+  Browser --> Karyawan : ❌ Wajah tidak dikenali
+end
+
+@enduml
+```
+
+---
+
+### 10.4 Sequence Diagram – Tambah Karyawan Baru
+
+```plantuml
+@startuml Sequence_AddEmployee
+
+title Sequence Diagram: Tambah Karyawan Baru
+
+actor Admin
+participant "Browser\n/dashboard/employees" as Browser
+participant "face-api.js" as FaceAPI
+participant "Next.js Server\n/api/employees" as API
+participant "PostgreSQL" as DB
+
+Admin -> Browser : Buka halaman Employees
+Admin -> Browser : Klik "Add Employee"
+Admin -> Browser : Isi form (nama, email, role, password)
+Admin -> Browser : Aktifkan kamera, posisikan wajah
+Browser -> FaceAPI : detectFace(capturedImage)
+FaceAPI --> Browser : faceDescriptor[128]
+
+Admin -> Browser : Klik Simpan
+Browser -> API : POST /api/employees\n{ name, email, role, password, faceDescriptor }
+API -> API : bcrypt.hash(password, 10)
+API -> DB : INSERT INTO users\n(name, email, role, passwordHash, faceDescriptor)
+alt Insert Berhasil
+  DB --> API : { id, name, email, role }
+  API --> Browser : HTTP 201\n{ id, name, email, role }
+  Browser --> Admin : ✅ Karyawan berhasil ditambahkan
+else Email Duplikat
+  DB --> API : Error: UNIQUE violation (code 23505)
+  API --> Browser : HTTP 409\n{ error: 'Email already exists' }
+  Browser --> Admin : ❌ Email sudah terdaftar
+end
+
+@enduml
+```
+
+---
+
+### 10.5 Activity Diagram – Proses Absensi Lengkap
+
+```plantuml
+@startuml Activity_CheckIn
+
+title Activity Diagram: Alur Lengkap Proses Absensi
+
+|Karyawan|
+start
+:Buka halaman /attendance;
+:Izinkan akses kamera & GPS;
+
+|Browser|
+:Muat model face-api.js;
+:Tampilkan live video stream;
+
+|Karyawan|
+:Klik tombol "Absen Sekarang";
+
+|Browser|
+:Ambil foto selfie dari webcam;
+:Ekstrak face descriptor (128-dim);
+:Ambil semua descriptor dari API;
+
+if (Wajah cocok dengan database?) then (Ya)
+  :Identifikasi userId & confidenceScore;
+  :Baca koordinat GPS browser;
+  :Kirim POST /api/check-in;
+
+  |Server|
+  :Baca pengaturan dari tabel settings;
+  :Hitung jarak ke kantor (Haversine);
+
+  if (Jarak ≤ radius check-in?) then (Ya)
+    :Cek log kehadiran hari ini;
+
+    if (Belum check-in hari ini?) then (Ya)
+      :Tentukan status berdasarkan waktu WIB;
+
+      if (Waktu ≤ jam masuk + toleransi?) then (Ya)
+        :Set status = ON_TIME;
+      else (Tidak)
+        :Set status = LATE;
+      endif
+
+      :INSERT ke attendance_logs;
+
+      |Browser|
+      :Tampilkan ✅ Absensi Berhasil;
+    else (Sudah)
+      |Browser|
+      :Tampilkan ⚠️ Sudah absen hari ini;
+    endif
+  else (Tidak)
+    |Browser|
+    :Tampilkan ❌ Terlalu jauh dari kantor;
+  endif
+else (Tidak)
+  |Browser|
+  :Tampilkan ❌ Wajah tidak dikenali;
+endif
+
+stop
+
+@enduml
+```
+
+---
+
+### 10.6 Component Diagram
+
+```plantuml
+@startuml Component_Diagram
+
+title Component Diagram - Sistem Absensi Fajar
+
+package "Client Side (Browser)" {
+  [Login Page] as Login
+  [Attendance Page\n(/attendance)] as AttPage
+  [Dashboard] as Dash
+  [Employees Page] as EmpPage
+  [Reports Page] as RepPage
+  [Settings Page] as SetPage
+  [Sidebar & Layout] as Layout
+  [LanguageProvider\n(React Context)] as Lang
+  [face-api.js\n(Face Recognition)] as FaceLib
+  [react-webcam\n(Camera Access)] as Webcam
+  [jsPDF\n(PDF Export)] as PDF
+}
+
+package "Server Side (Next.js API Routes)" {
+  [JWT Middleware] as Middleware
+  [Auth API\n(/api/auth)] as AuthAPI
+  [CheckIn API\n(/api/check-in)] as CheckInAPI
+  [Employees API\n(/api/employees)] as EmpAPI
+  [Dashboard API\n(/api/dashboard)] as DashAPI
+  [Reports API\n(/api/dashboard/reports)] as RepAPI
+  [Settings API\n(/api/settings)] as SetAPI
+  [Roles API\n(/api/roles)] as RolesAPI
+}
+
+package "Data Layer" {
+  [DB Pool\n(lib/db.ts)] as DBPool
+  database "PostgreSQL" as PostgreSQL {
+    [users]
+    [attendance_logs]
+    [settings]
+  }
+}
+
+package "External" {
+  [Geolocation API\n(Browser API)] as GeoAPI
+  [Cloud Storage\n(Selfie URL)] as Storage
+}
+
+' Client → Server connections
+Login --> AuthAPI
+AttPage --> CheckInAPI
+AttPage --> EmpAPI
+Dash --> DashAPI
+EmpPage --> EmpAPI
+RepPage --> RepAPI
+SetPage --> SetAPI
+
+' Client internal
+AttPage --> FaceLib
+AttPage --> Webcam
+AttPage --> GeoAPI
+RepPage --> PDF
+Dash --> Layout
+EmpPage --> Layout
+RepPage --> Layout
+SetPage --> Layout
+Layout --> Lang
+
+' Middleware protection
+Middleware -right--> Dash
+Middleware --> EmpPage
+Middleware --> RepPage
+Middleware --> SetPage
+
+' Server → Data Layer
+AuthAPI --> DBPool
+CheckInAPI --> DBPool
+EmpAPI --> DBPool
+DashAPI --> DBPool
+RepAPI --> DBPool
+SetAPI --> DBPool
+RolesAPI --> DBPool
+DBPool --> PostgreSQL
+
+' External
+CheckInAPI --> Storage : selfie_url
+
+@enduml
+```
+
+---
+
+### 10.7 State Diagram – Status Kehadiran Karyawan
+
+```plantuml
+@startuml State_Attendance
+
+title State Diagram: Status Kehadiran Karyawan (Per Hari)
+
+[*] --> ABSENT : Hari kerja dimulai
+
+ABSENT --> CHECKING : Karyawan membuka /attendance
+
+state CHECKING {
+  [*] --> FaceDetecting : Kamera aktif
+  FaceDetecting --> FaceMatched : Wajah cocok
+  FaceDetecting --> FaceRejected : Wajah tidak cocok
+  FaceMatched --> GeoChecking : GPS dibaca
+  GeoChecking --> GeoValid : Dalam radius
+  GeoChecking --> GeoInvalid : Di luar radius
+  GeoValid --> Submitting : POST /api/check-in
+  Submitting --> CheckInSuccess : 200 OK
+  Submitting --> CheckInFailed : Error (409/403/500)
+}
+
+CHECKING --> ON_TIME : CheckInSuccess + waktu ≤ batas
+CHECKING --> LATE : CheckInSuccess + waktu > batas
+CHECKING --> ABSENT : FaceRejected /\nGeoInvalid /\nCheckInFailed
+
+ON_TIME --> [*] : Akhir hari
+LATE --> [*] : Akhir hari
+ABSENT --> [*] : Akhir hari (tidak hadir)
+
+ON_TIME : Tercatat hadir - tepat waktu
+LATE : Tercatat hadir - terlambat
+ABSENT : Tidak ada log kehadiran
+
+note right of ON_TIME
+  status = 'on_time'
+  Disimpan di attendance_logs
+end note
+
+note right of LATE
+  status = 'late'
+  Disimpan di attendance_logs
+end note
+
+@enduml
+```
+
+---
+
+## 11. Batasan Sistem
 
 1. **Ketergantungan Kamera** – Proses check-in hanya dapat dilakukan pada perangkat dengan kamera yang berfungsi dan izin akses kamera diberikan oleh pengguna.
 2. **Ketergantungan GPS** – Proses check-in memerlukan akses lokasi GPS; akurasi bergantung pada perangkat dan sinyal GPS.
@@ -930,16 +1362,16 @@ Sistem terhubung ke PostgreSQL melalui:
 
 ---
 
-## 11. Asumsi dan Ketergantungan
+## 12. Asumsi dan Ketergantungan
 
-### 9.1 Asumsi
+### 12.1 Asumsi
 
 - Setiap karyawan memiliki wajah yang telah didaftarkan (*enrolled*) ke sistem sebelum dapat melakukan check-in.
 - Admin bertanggung jawab atas pendaftaran awal dan pengelolaan data karyawan.
 - Karyawan mengakses sistem menggunakan browser modern yang mendukung WebRTC (akses kamera) dan Geolocation API.
 - Sistem dijalankan di lingkungan server yang mendukung Node.js dan dapat terhubung ke PostgreSQL.
 
-### 9.2 Ketergantungan Eksternal
+### 12.2 Ketergantungan Eksternal
 
 | Ketergantungan | Versi | Fungsi |
 |---|---|---|
