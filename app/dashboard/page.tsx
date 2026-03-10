@@ -276,14 +276,9 @@ export default function DashboardPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="space-y-1">
-                                                    <p className="text-white font-mono">
-                                                        {log.check_in_time || log.timestamp ? format(new Date(log.check_in_time || log.timestamp), "hh:mm a") : '-'}
-                                                    </p>
-                                                    <p className="text-xs text-zinc-500">
-                                                        {log.check_in_time || log.timestamp ? `about ${Math.floor((new Date().getTime() - new Date(log.check_in_time || log.timestamp).getTime()) / (1000 * 60 * 60))} hours ago` : ''}
-                                                    </p>
-                                                </div>
+                                                <p className="text-white font-mono">
+                                                    {log.check_in_time || log.timestamp ? format(new Date(log.check_in_time || log.timestamp), "dd MMM yyyy") : '-'}
+                                                </p>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="h-12 w-20 bg-zinc-800 rounded-lg overflow-hidden border border-zinc-700 relative group-hover:border-[#13ec6d]/50 transition-colors">
