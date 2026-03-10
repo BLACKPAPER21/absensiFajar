@@ -4,6 +4,16 @@ import { StatsCard } from "@/components/StatsCard";
 import { Users, CheckCircle, XCircle, Clock, Plus, Search, MoreHorizontal, Bell, Loader2, Trash2, ChevronLeft, ChevronRight, User, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -24,6 +34,10 @@ export default function DashboardPage() {
   });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+    const [isDeletingAll, setIsDeletingAll] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteScope, setDeleteScope] = useState<"single" | "all" | null>(null);
+    const [selectedAttendanceId, setSelectedAttendanceId] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -90,8 +104,6 @@ export default function DashboardPage() {
   };
 
   const handleDeleteAttendance = async (id: string) => {
-    if(!confirm("Are you sure you want to delete this attendance record?")) return;
-
     try {
         const res = await fetch(`/api/attendance/${id}`, { method: 'DELETE' });
         if (res.ok) {
@@ -104,6 +116,51 @@ export default function DashboardPage() {
     } catch (error) {
         alert("Error deleting record");
     }
+  };
+
+  const openDeleteOneModal = (id: string) => {
+    setDeleteScope("single");
+    setSelectedAttendanceId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const openDeleteAllModal = () => {
+    if (recentActivity.length === 0) return;
+    setDeleteScope("all");
+    setSelectedAttendanceId(null);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteAllAttendance = async () => {
+    setIsDeletingAll(true);
+    try {
+        const res = await fetch('/api/attendance', { method: 'DELETE' });
+        if (res.ok) {
+            alert('All attendance records deleted successfully');
+            fetchStats(1, pagination.limit);
+        } else {
+            const err = await res.json();
+            alert(`Failed to delete all records: ${err.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        alert('Error deleting all records');
+    } finally {
+        setIsDeletingAll(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteScope === "single" && selectedAttendanceId) {
+      await handleDeleteAttendance(selectedAttendanceId);
+    }
+
+    if (deleteScope === "all") {
+      await handleDeleteAllAttendance();
+    }
+
+    setIsDeleteModalOpen(false);
+    setDeleteScope(null);
+    setSelectedAttendanceId(null);
   };
 
   return (
@@ -234,11 +291,21 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-white">{t('recentAttendance')}</h2>
-                        <Button variant="ghost" className="text-[#13ec6d] hover:text-[#13ec6d]/80 hover:bg-[#13ec6d]/10" asChild>
-                            <Link href="/dashboard/reports">
-                            {t('viewAll')}
-                            </Link>
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                                onClick={openDeleteAllModal}
+                                disabled={isDeletingAll || recentActivity.length === 0}
+                            >
+                                {isDeletingAll ? 'Deleting...' : 'Delete All'}
+                            </Button>
+                            <Button variant="ghost" className="text-[#13ec6d] hover:text-[#13ec6d]/80 hover:bg-[#13ec6d]/10" asChild>
+                                <Link href="/dashboard/reports">
+                                {t('viewAll')}
+                                </Link>
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="rounded-xl border border-zinc-900 bg-zinc-900/50 overflow-hidden overflow-x-auto">
@@ -302,7 +369,7 @@ export default function DashboardPage() {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <button
-                                                    onClick={() => handleDeleteAttendance(log.id)}
+                                                    onClick={() => openDeleteOneModal(log.id)}
                                                     className="p-2 text-zinc-500 hover:text-red-500 transition-colors"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -360,6 +427,30 @@ export default function DashboardPage() {
             </>
           )}
         </div>
+
+                <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>
+                                {deleteScope === "all" ? "Delete all attendance records?" : "Delete this attendance record?"}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {deleteScope === "all"
+                                    ? "This action will permanently remove all attendance logs and cannot be undone."
+                                    : "This action will permanently remove this attendance log and cannot be undone."}
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleConfirmDelete}
+                                className="bg-red-500 text-white hover:bg-red-600 border-none"
+                            >
+                                {isDeletingAll && deleteScope === "all" ? "Deleting..." : "Delete"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
     </>
   );
 }
