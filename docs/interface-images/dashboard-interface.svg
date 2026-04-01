@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#e2e8f0"/>
+  <rect x="0" y="0" width="250" height="720" fill="#0f172a"/>
+  <text x="35" y="60" font-size="28" font-family="Segoe UI" fill="#ffffff">Absensi</text>
+  <text x="35" y="100" font-size="20" font-family="Segoe UI" fill="#cbd5e1">Dashboard</text>
+  <text x="35" y="140" font-size="20" font-family="Segoe UI" fill="#94a3b8">Karyawan</text>
+  <text x="35" y="180" font-size="20" font-family="Segoe UI" fill="#94a3b8">Laporan</text>
+  <text x="35" y="220" font-size="20" font-family="Segoe UI" fill="#94a3b8">Pengaturan</text>
+
+  <rect x="270" y="30" width="980" height="70" rx="14" fill="#ffffff"/>
+  <text x="300" y="74" font-size="30" font-family="Segoe UI" fill="#0f172a">Dashboard Admin</text>
+
+  <rect x="270" y="130" width="300" height="140" rx="16" fill="#ffffff"/>
+  <rect x="590" y="130" width="300" height="140" rx="16" fill="#ffffff"/>
+  <rect x="910" y="130" width="340" height="140" rx="16" fill="#ffffff"/>
+  <text x="300" y="190" font-size="18" font-family="Segoe UI" fill="#64748b">Total Karyawan</text>
+  <text x="300" y="230" font-size="40" font-family="Segoe UI" fill="#0f172a">120</text>
+  <text x="620" y="190" font-size="18" font-family="Segoe UI" fill="#64748b">Hadir Hari Ini</text>
+  <text x="620" y="230" font-size="40" font-family="Segoe UI" fill="#0f172a">97</text>
+  <text x="940" y="190" font-size="18" font-family="Segoe UI" fill="#64748b">Terlambat / Absen</text>
+  <text x="940" y="230" font-size="40" font-family="Segoe UI" fill="#0f172a">23</text>
+
+  <rect x="270" y="290" width="980" height="390" rx="16" fill="#ffffff"/>
+  <text x="300" y="340" font-size="26" font-family="Segoe UI" fill="#0f172a">Aktivitas Check-in Terbaru</text>
+  <line x1="300" y1="370" x2="1220" y2="370" stroke="#cbd5e1"/>
+  <text x="300" y="410" font-size="18" font-family="Segoe UI" fill="#334155">Nama</text>
+  <text x="520" y="410" font-size="18" font-family="Segoe UI" fill="#334155">Waktu</text>
+  <text x="760" y="410" font-size="18" font-family="Segoe UI" fill="#334155">Status</text>
+  <text x="980" y="410" font-size="18" font-family="Segoe UI" fill="#334155">Aksi</text>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect x="390" y="120" width="500" height="480" rx="20" fill="#f8fafc"/>
+  <text x="640" y="190" text-anchor="middle" font-size="36" font-family="Segoe UI" fill="#0f172a">Absensi Fajar</text>
+  <text x="640" y="230" text-anchor="middle" font-size="18" font-family="Segoe UI" fill="#475569">Masuk ke Dashboard Admin</text>
+
+  <text x="460" y="290" font-size="16" font-family="Segoe UI" fill="#334155">Email</text>
+  <rect x="450" y="305" width="380" height="48" rx="10" fill="#e2e8f0"/>
+
+  <text x="460" y="390" font-size="16" font-family="Segoe UI" fill="#334155">Password</text>
+  <rect x="450" y="405" width="380" height="48" rx="10" fill="#e2e8f0"/>
+
+  <rect x="450" y="485" width="380" height="52" rx="12" fill="#0ea5e9"/>
+  <text x="640" y="518" text-anchor="middle" font-size="20" font-family="Segoe UI" fill="#ffffff">Login</text>
+
+  <text x="640" y="570" text-anchor="middle" font-size="14" font-family="Segoe UI" fill="#64748b">Mockup antarmuka halaman login</text>
+</svg>

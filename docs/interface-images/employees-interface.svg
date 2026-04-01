@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f8fafc"/>
+  <rect x="30" y="30" width="1220" height="80" rx="14" fill="#ffffff"/>
+  <text x="60" y="80" font-size="30" font-family="Segoe UI" fill="#0f172a">Manajemen Karyawan</text>
+
+  <rect x="30" y="130" width="820" height="560" rx="14" fill="#ffffff"/>
+  <rect x="60" y="170" width="400" height="46" rx="10" fill="#e2e8f0"/>
+  <text x="80" y="200" font-size="16" font-family="Segoe UI" fill="#64748b">Cari nama atau email...</text>
+  <rect x="650" y="170" width="170" height="46" rx="10" fill="#0ea5e9"/>
+  <text x="735" y="200" text-anchor="middle" font-size="17" font-family="Segoe UI" fill="#ffffff">Tambah</text>
+
+  <line x1="60" y1="245" x2="820" y2="245" stroke="#cbd5e1"/>
+  <text x="70" y="280" font-size="16" font-family="Segoe UI" fill="#334155">Nama</text>
+  <text x="280" y="280" font-size="16" font-family="Segoe UI" fill="#334155">Email</text>
+  <text x="530" y="280" font-size="16" font-family="Segoe UI" fill="#334155">Role</text>
+  <text x="670" y="280" font-size="16" font-family="Segoe UI" fill="#334155">Face</text>
+
+  <rect x="870" y="130" width="380" height="560" rx="14" fill="#ffffff"/>
+  <text x="900" y="180" font-size="24" font-family="Segoe UI" fill="#0f172a">Form Karyawan</text>
+  <text x="900" y="220" font-size="15" font-family="Segoe UI" fill="#334155">Nama</text>
+  <rect x="900" y="230" width="320" height="42" rx="8" fill="#e2e8f0"/>
+  <text x="900" y="295" font-size="15" font-family="Segoe UI" fill="#334155">Email</text>
+  <rect x="900" y="305" width="320" height="42" rx="8" fill="#e2e8f0"/>
+  <text x="900" y="370" font-size="15" font-family="Segoe UI" fill="#334155">Role</text>
+  <rect x="900" y="380" width="320" height="42" rx="8" fill="#e2e8f0"/>
+
+  <rect x="900" y="450" width="320" height="120" rx="12" fill="#1f2937"/>
+  <text x="1060" y="515" text-anchor="middle" font-size="18" font-family="Segoe UI" fill="#cbd5e1">Face Enrollment</text>
+
+  <rect x="900" y="600" width="320" height="52" rx="10" fill="#16a34a"/>
+  <text x="1060" y="634" text-anchor="middle" font-size="20" font-family="Segoe UI" fill="#ffffff">Simpan</text>
+</svg>

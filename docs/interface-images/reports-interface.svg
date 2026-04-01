@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f1f5f9"/>
+  <rect x="30" y="30" width="1220" height="80" rx="14" fill="#ffffff"/>
+  <text x="60" y="80" font-size="30" font-family="Segoe UI" fill="#0f172a">Laporan Kehadiran</text>
+  <rect x="900" y="50" width="170" height="40" rx="8" fill="#e2e8f0"/>
+  <text x="985" y="76" text-anchor="middle" font-size="16" font-family="Segoe UI" fill="#334155">Pilih Tanggal</text>
+  <rect x="1090" y="50" width="140" height="40" rx="8" fill="#0ea5e9"/>
+  <text x="1160" y="76" text-anchor="middle" font-size="16" font-family="Segoe UI" fill="#ffffff">Export PDF</text>
+
+  <rect x="30" y="130" width="390" height="170" rx="14" fill="#ffffff"/>
+  <rect x="445" y="130" width="390" height="170" rx="14" fill="#ffffff"/>
+  <rect x="860" y="130" width="390" height="170" rx="14" fill="#ffffff"/>
+  <text x="60" y="185" font-size="18" font-family="Segoe UI" fill="#64748b">Total Karyawan</text>
+  <text x="60" y="245" font-size="44" font-family="Segoe UI" fill="#0f172a">120</text>
+  <text x="475" y="185" font-size="18" font-family="Segoe UI" fill="#64748b">Rata-rata Check-in</text>
+  <text x="475" y="245" font-size="44" font-family="Segoe UI" fill="#0f172a">08:07</text>
+  <text x="890" y="185" font-size="18" font-family="Segoe UI" fill="#64748b">Jumlah Absen</text>
+  <text x="890" y="245" font-size="44" font-family="Segoe UI" fill="#0f172a">18</text>
+
+  <rect x="30" y="320" width="520" height="370" rx="14" fill="#ffffff"/>
+  <text x="60" y="370" font-size="22" font-family="Segoe UI" fill="#0f172a">Distribusi Status</text>
+  <circle cx="290" cy="520" r="120" fill="#e2e8f0"/>
+  <path d="M290 520 L290 400 A120 120 0 0 1 394 580 Z" fill="#22c55e"/>
+  <path d="M290 520 L394 580 A120 120 0 0 1 210 610 Z" fill="#f59e0b"/>
+
+  <rect x="570" y="320" width="680" height="370" rx="14" fill="#ffffff"/>
+  <text x="600" y="370" font-size="22" font-family="Segoe UI" fill="#0f172a">Ringkasan Bulanan Per Karyawan</text>
+  <line x1="600" y1="395" x2="1220" y2="395" stroke="#cbd5e1"/>
+</svg>

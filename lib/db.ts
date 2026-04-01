@@ -1,14 +1,17 @@
 import { Pool } from "pg";
 
-// Required for Timescale/Tiger Cloud self-signed certificates
-// This MUST be set before any TLS connections are made
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+const connectionString = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("Database URL is missing. Set SUPABASE_DB_URL or DATABASE_URL.");
+}
+
+const shouldUseSSL = process.env.PGSSLMODE !== "disable";
+const rejectUnauthorized = process.env.PGSSL_REJECT_UNAUTHORIZED !== "false";
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  connectionString,
+  ssl: shouldUseSSL ? { rejectUnauthorized } : false,
 });
 
 export default pool;

@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Absensi Fajar
 
-## Getting Started
+Sistem absensi karyawan berbasis Next.js (App Router) dengan backend API route dan database PostgreSQL.
 
-First, run the development server:
+## Menjalankan Project
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Install dependency:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+	npm install
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. Siapkan file env (contoh di bawah).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Jalankan development server:
 
-## Learn More
+	npm run dev
 
-To learn more about Next.js, take a look at the following resources:
+4. Buka http://localhost:3000
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Konfigurasi Database (Supabase)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Project ini mendukung 2 variabel koneksi:
 
-## Deploy on Vercel
+- SUPABASE_DB_URL (prioritas utama)
+- DATABASE_URL (fallback)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Contoh isi .env.local:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+SUPABASE_DB_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+PGSSLMODE=require
+PGSSL_REJECT_UNAUTHORIZED=true
+JWT_SECRET=ganti-dengan-secret-yang-aman
+
+Catatan:
+
+- Untuk lingkungan lokal tanpa SSL, set PGSSLMODE=disable.
+- Jangan commit file .env* karena berisi kredensial.
+
+## Migrasi dari TigerData ke Supabase
+
+1. Buat project baru di Supabase.
+2. Ambil connection string PostgreSQL dari menu Connect.
+3. Set connection string tersebut ke SUPABASE_DB_URL pada .env.local.
+4. Jalankan inisialisasi schema:
+
+	node scripts/setup-db.js
+
+5. Seed admin:
+
+	node scripts/seed-admin.js
+
+6. Jika perlu migrasi role dinamis:
+
+	node scripts/migrate-roles.js
+
+7. Pindahkan data lama (opsional) dengan dump/restore PostgreSQL:
+
+	pg_dump "<tigerdata_url>" --format=custom --no-owner --no-privileges --file=tiger.dump
+	pg_restore --no-owner --no-privileges --dbname="<supabase_url>" tiger.dump
+
+## Stack
+
+- Next.js 16
+- React 19
+- PostgreSQL via pg

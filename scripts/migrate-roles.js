@@ -1,18 +1,21 @@
 const { Pool } = require('pg');
 const path = require('path');
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 // Explicitly load .env.local
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
-if (!process.env.DATABASE_URL) {
-  console.error('Error: DATABASE_URL is not defined.');
+const connectionString = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
+const shouldUseSSL = process.env.PGSSLMODE !== 'disable';
+const rejectUnauthorized = process.env.PGSSL_REJECT_UNAUTHORIZED !== 'false';
+
+if (!connectionString) {
+  console.error('Error: SUPABASE_DB_URL / DATABASE_URL is not defined.');
   process.exit(1);
 }
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  connectionString,
+  ssl: shouldUseSSL ? { rejectUnauthorized } : false
 });
 
 async function migrate() {

@@ -894,6 +894,89 @@ ON CONFLICT (key) DO NOTHING;
 | Laporan | `/dashboard/reports` | Admin only | Laporan dan analisis kehadiran |
 | Pengaturan | `/dashboard/settings` | Admin only | Konfigurasi sistem |
 
+#### 9.1.1 Spesifikasi Desain Tampilan
+
+Spesifikasi ini menjelaskan bagaimana pengguna berinteraksi dengan sistem melalui elemen visual pada setiap halaman utama.
+
+**A. Tata Letak Halaman (Layout)**
+- Sistem menggunakan pola layout konsisten: **sidebar navigasi** (halaman admin), **topbar/header**, dan **konten utama**.
+- Halaman publik seperti Login dan Absensi menggunakan layout fokus tunggal agar pengguna langsung menuju aksi utama.
+- Pada halaman admin, konten utama dibagi menjadi: kartu ringkasan, tabel data, form input, dan area aksi cepat.
+
+**B. Warna (Color System)**
+- Warna primer digunakan untuk aksi utama (misalnya tombol Login, Simpan, Export).
+- Warna status digunakan untuk memberi umpan balik cepat:
+  - Hijau: berhasil / on time
+  - Kuning/oranye: terlambat / peringatan
+  - Merah: error / ditolak
+  - Abu-abu: informasi netral dan elemen sekunder
+- Kontras warna dijaga agar teks terbaca dengan baik pada semua komponen.
+
+**C. Tipografi (Font & Hierarchy)**
+- Font sans-serif modern digunakan untuk menjaga keterbacaan di desktop dan mobile.
+- Hierarki teks:
+  - Heading halaman: menonjol untuk konteks lokasi pengguna.
+  - Subheading/keterangan: menjelaskan status dan instruksi.
+  - Label form dan isi tabel: ukuran sedang agar mudah dipindai.
+- Label aksi memakai kata kerja langsung seperti: **Login**, **Absen Sekarang**, **Simpan**, **Export PDF**.
+
+**D. Elemen UI Utama**
+- Tombol utama (Primary Button) untuk aksi kritikal.
+- Tombol sekunder untuk aksi pendukung (filter, batal, navigasi).
+- Input form dengan label jelas dan validasi error inline/toast.
+- Ikon navigasi untuk mempercepat orientasi fitur.
+- Tabel data dengan header kolom eksplisit, paginasi, dan tombol aksi per baris.
+- Dialog konfirmasi pada aksi destruktif (hapus data, logout).
+
+**E. Menu Navigasi**
+- Sidebar admin menampilkan menu utama: Dashboard, Karyawan, Laporan, Pengaturan.
+- Menu aktif diberikan penanda visual (warna/indikator) untuk menunjukkan posisi pengguna saat ini.
+- Navigasi didesain konsisten agar pengguna baru dapat memahami alur tanpa pelatihan panjang.
+
+**F. Pola Interaksi Pengguna**
+- Sistem menampilkan feedback instan melalui toast/alert saat sukses atau gagal.
+- Tombol aksi memiliki state: normal, loading, disabled, success/fail.
+- Form wajib menampilkan petunjuk ketika input belum valid.
+- Halaman Absensi memprioritaskan kamera dan status geolokasi agar proses check-in cepat.
+
+#### 9.1.2 Galeri Interface Utama
+
+##### 1) Interface Login (`/login`)
+
+Menampilkan form autentikasi admin dengan field email, password, dan tombol login sebagai aksi utama.
+
+![Interface Login](docs/interface-images/login-interface.svg)
+
+##### 2) Interface Absensi (`/attendance`)
+
+Menampilkan area kamera untuk selfie, panel status lokasi/waktu, serta tombol **Absen Sekarang**.
+
+![Interface Absensi](docs/interface-images/attendance-interface.svg)
+
+##### 3) Interface Dashboard (`/dashboard`)
+
+Menampilkan sidebar navigasi, kartu statistik harian, dan tabel aktivitas check-in terbaru.
+
+![Interface Dashboard](docs/interface-images/dashboard-interface.svg)
+
+##### 4) Interface Manajemen Karyawan (`/dashboard/employees`)
+
+Menampilkan tabel daftar karyawan, pencarian, tombol tambah, serta form data dan area face enrollment.
+
+![Interface Manajemen Karyawan](docs/interface-images/employees-interface.svg)
+
+##### 5) Interface Laporan (`/dashboard/reports`)
+
+Menampilkan filter tanggal, metrik harian, visualisasi distribusi status, dan tombol export PDF.
+
+![Interface Laporan](docs/interface-images/reports-interface.svg)
+
+##### 6) Interface Pengaturan (`/dashboard/settings`)
+
+Menampilkan pengaturan umum, konfigurasi aturan absensi, pilihan bahasa, dan tombol simpan perubahan.
+
+![Interface Pengaturan](docs/interface-images/settings-interface.svg)
+
 ### 9.2 Antarmuka API
 
 | Method | Endpoint | Akses | Deskripsi |
